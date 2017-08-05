@@ -1,0 +1,19 @@
+name: Event
+description: 'Provides Event content type and related configuration. '
+type: module
+core: 8.x
+dependencies:
+  - artist
+  - comment
+  - datetime
+  - ds
+  - field
+  - file
+  - image
+  - menu_ui
+  - node
+  - options
+  - path
+  - simple_gmap
+  - text
+  - user

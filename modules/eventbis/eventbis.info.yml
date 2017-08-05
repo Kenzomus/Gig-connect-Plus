@@ -1,0 +1,7 @@
+name: Eventbis
+description: 'Provides Event content type and related configuration. '
+type: module
+core: 8.x
+dependencies:
+ 
+version: 8.x-1.0

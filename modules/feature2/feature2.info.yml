@@ -1,0 +1,29 @@
+name: feature2
+type: module
+core: 8.x
+dependencies:
+  - audiofield
+  - blazy
+  - block
+  - comment
+  - datetime
+  - ds
+  - field
+  - file
+  - image
+  - language
+  - link
+  - menu_ui
+  - node
+  - options
+  - path
+  - simple_gmap
+  - system
+  - telephone
+  - text
+  - user
+  - video_embed_field
+  - views
+  - views_bootstrap
+  - views_slideshow
+version: 8.x-1.0

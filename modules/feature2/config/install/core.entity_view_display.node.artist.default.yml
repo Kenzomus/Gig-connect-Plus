@@ -1,0 +1,111 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.artist.body
+    - field.field.node.artist.field_address_1
+    - field.field.node.artist.field_address_line_2
+    - field.field.node.artist.field_artist_photo
+    - field.field.node.artist.field_artist_shows
+    - field.field.node.artist.field_artist_type
+    - field.field.node.artist.field_city
+    - field.field.node.artist.field_contact_artist
+    - field.field.node.artist.field_email
+    - field.field.node.artist.field_facebook_page
+    - field.field.node.artist.field_first_name
+    - field.field.node.artist.field_instruments_played
+    - field.field.node.artist.field_linkedin
+    - field.field.node.artist.field_music
+    - field.field.node.artist.field_music_style
+    - field.field.node.artist.field_phone
+    - field.field.node.artist.field_press_release
+    - field.field.node.artist.field_state
+    - field.field.node.artist.field_twiter
+    - field.field.node.artist.field_videos
+    - field.field.node.artist.field_website
+    - field.field.node.artist.field_zip_code
+    - node.type.artist
+  module:
+    - ds
+    - options
+    - text
+    - user
+third_party_settings:
+  ds:
+    layout:
+      id: ds_1col
+      path: modules/ds
+      library: ''
+      disable_css: false
+      entity_classes: all_classes
+      settings:
+        wrappers:
+          ds_content: div
+        outer_wrapper: div
+        attributes: ''
+        link_attribute: ''
+        link_custom: ''
+        classes:
+          layout_class: {  }
+    regions:
+      ds_content:
+        - field_first_name
+        - body
+        - field_music_style
+        - field_instruments_played
+id: node.artist.default
+targetEntityType: node
+bundle: artist
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 1
+    settings: {  }
+    third_party_settings: {  }
+  field_artist_type:
+    weight: 27
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+  field_first_name:
+    weight: 0
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    type: text_default
+  field_instruments_played:
+    weight: 26
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+  field_music_style:
+    weight: 25
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: list_default
+hidden:
+  addtoany: true
+  field_address_1: true
+  field_address_line_2: true
+  field_artist_photo: true
+  field_artist_shows: true
+  field_city: true
+  field_contact_artist: true
+  field_email: true
+  field_facebook_page: true
+  field_linkedin: true
+  field_music: true
+  field_phone: true
+  field_press_release: true
+  field_state: true
+  field_twiter: true
+  field_videos: true
+  field_website: true
+  field_zip_code: true
+  langcode: true
+  links: true

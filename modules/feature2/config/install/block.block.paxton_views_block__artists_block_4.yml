@@ -1,0 +1,31 @@
+langcode: en
+status: false
+dependencies:
+  config:
+    - views.view.artists
+  module:
+    - node
+    - views
+  theme:
+    - paxton
+id: paxton_views_block__artists_block_4
+theme: paxton
+region: '-1'
+weight: -12
+provider: null
+plugin: 'views_block:artists-block_4'
+settings:
+  id: 'views_block:artists-block_4'
+  label: 'About Artist'
+  provider: views
+  label_display: visible
+  views_label: 'About Artist'
+  items_per_page: none
+visibility:
+  node_type:
+    id: node_type
+    bundles:
+      artist: artist
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

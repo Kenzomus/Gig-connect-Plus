@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.artists
+  module:
+    - node
+    - views
+  theme:
+    - paxton
+id: paxton_views_block__artists_block_3
+theme: paxton
+region: sidebar_first
+weight: 0
+provider: null
+plugin: 'views_block:artists-block_3'
+settings:
+  id: 'views_block:artists-block_3'
+  label: 'Artists Featured events'
+  provider: views
+  label_display: visible
+  views_label: 'Artists Featured events'
+  items_per_page: none
+visibility:
+  node_type:
+    id: node_type
+    bundles:
+      artist: artist
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

@@ -1,0 +1,225 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.artist.body
+    - field.field.node.artist.field_address_1
+    - field.field.node.artist.field_address_line_2
+    - field.field.node.artist.field_artist_photo
+    - field.field.node.artist.field_artist_shows
+    - field.field.node.artist.field_artist_type
+    - field.field.node.artist.field_city
+    - field.field.node.artist.field_contact_artist
+    - field.field.node.artist.field_email
+    - field.field.node.artist.field_facebook_page
+    - field.field.node.artist.field_first_name
+    - field.field.node.artist.field_instruments_played
+    - field.field.node.artist.field_linkedin
+    - field.field.node.artist.field_music
+    - field.field.node.artist.field_music_style
+    - field.field.node.artist.field_phone
+    - field.field.node.artist.field_press_release
+    - field.field.node.artist.field_state
+    - field.field.node.artist.field_twiter
+    - field.field.node.artist.field_videos
+    - field.field.node.artist.field_website
+    - field.field.node.artist.field_zip_code
+    - image.style.thumbnail
+    - node.type.artist
+  module:
+    - file
+    - image
+    - link
+    - path
+    - telephone
+    - text
+    - video_embed_field
+id: node.artist.default
+targetEntityType: node
+bundle: artist
+mode: default
+content:
+  body:
+    type: text_textarea_with_summary
+    weight: 4
+    settings:
+      rows: 9
+      placeholder: 'Tell us about you. Your bio'
+      summary_rows: 3
+    third_party_settings: {  }
+  created:
+    type: datetime_timestamp
+    weight: 6
+    settings: {  }
+    third_party_settings: {  }
+  field_address_1:
+    weight: 27
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_address_line_2:
+    weight: 28
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_artist_photo:
+    weight: 2
+    settings:
+      progress_indicator: throbber
+      preview_image_style: thumbnail
+    third_party_settings: {  }
+    type: image_image
+  field_artist_shows:
+    weight: 13
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: 'Do you have upcoming shows, events? Create it in events and reference it here to display in your profile.'
+    third_party_settings: {  }
+    type: entity_reference_autocomplete
+  field_artist_type:
+    weight: 32
+    settings: {  }
+    third_party_settings: {  }
+    type: options_select
+  field_city:
+    weight: 29
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_email:
+    weight: 16
+    settings:
+      size: 60
+      placeholder: 'What''s your phone email? '
+    third_party_settings: {  }
+    type: email_default
+  field_facebook_page:
+    weight: 15
+    settings:
+      placeholder_url: 'your facebook url '
+      placeholder_title: 'What''s the title of your link in Facebook'
+    third_party_settings: {  }
+    type: link_default
+  field_first_name:
+    weight: 1
+    settings:
+      size: 60
+      placeholder: 'What''s your last name?'
+    third_party_settings: {  }
+    type: text_textfield
+  field_instruments_played:
+    weight: 26
+    settings: {  }
+    third_party_settings: {  }
+    type: options_buttons
+  field_linkedin:
+    weight: 20
+    settings:
+      placeholder_url: ''
+      placeholder_title: 'What''s your linkedin? '
+    third_party_settings: {  }
+    type: link_default
+  field_music:
+    weight: 12
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+    type: file_generic
+  field_music_style:
+    weight: 11
+    settings: {  }
+    third_party_settings: {  }
+    type: options_buttons
+  field_phone:
+    weight: 17
+    settings:
+      placeholder: 'What''s your phone number? '
+    third_party_settings: {  }
+    type: telephone_default
+  field_press_release:
+    weight: 10
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: 'Do you have Press release? You can create one within our network and reference it here'
+    third_party_settings: {  }
+    type: entity_reference_autocomplete
+  field_state:
+    weight: 30
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  field_twiter:
+    weight: 19
+    settings:
+      placeholder_url: ''
+      placeholder_title: 'What''s your twiter link? '
+    third_party_settings: {  }
+    type: link_default
+  field_videos:
+    weight: 14
+    settings: {  }
+    third_party_settings: {  }
+    type: video_embed_field_textfield
+  field_website:
+    weight: 18
+    settings:
+      placeholder_url: www.someone.com
+      placeholder_title: 'What''s your website? '
+    third_party_settings: {  }
+    type: link_default
+  field_zip_code:
+    weight: 31
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+    type: string_textfield
+  langcode:
+    type: language_select
+    weight: 3
+    settings: {  }
+    third_party_settings: {  }
+  path:
+    type: path
+    weight: 9
+    settings: {  }
+    third_party_settings: {  }
+  promote:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 7
+    third_party_settings: {  }
+  sticky:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 8
+    third_party_settings: {  }
+  title:
+    type: string_textfield
+    weight: 0
+    settings:
+      size: 60
+      placeholder: 'What''s your first name?'
+    third_party_settings: {  }
+  uid:
+    type: entity_reference_autocomplete
+    weight: 5
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  field_contact_artist: true

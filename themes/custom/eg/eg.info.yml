@@ -1,0 +1,11 @@
+name: Elegant Garden
+type: theme
+description : Fresh Green Theme for Elegant garden
+core: 8.x
+base theme: classy
+screenshot:  screenshot.png
+
+libraries:
+ - eg/eg-css
+ - eg/quicksand
+ - core/normalize

@@ -1,0 +1,13 @@
+name: 'Press Release'
+description: 'Provides Press Release content type and related configuration. '
+type: module
+core: 8.x
+dependencies:
+  - artist
+  - field
+  - link
+  - menu_ui
+  - node
+  - path
+  - text
+  - user

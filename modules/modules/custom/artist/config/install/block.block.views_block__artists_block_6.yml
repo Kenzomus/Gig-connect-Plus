@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.artists
+  module:
+    - system
+    - views
+  theme:
+    - bootstrap
+id: views_block__artists_block_6
+theme: bootstrap
+region: content
+weight: -12
+provider: null
+plugin: 'views_block:artists-block_6'
+settings:
+  id: 'views_block:artists-block_6'
+  label: ''
+  provider: views
+  label_display: visible
+  views_label: ''
+  items_per_page: none
+visibility:
+  request_path:
+    id: request_path
+    pages: '<front>'
+    negate: false
+    context_mapping: {  }

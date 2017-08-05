@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_link_to_article
+    - node.type.press_release
+  module:
+    - link
+id: node.press_release.field_link_to_article
+field_name: field_link_to_article
+entity_type: node
+bundle: press_release
+label: 'Link to article'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  link_type: 17
+  title: 1
+field_type: link

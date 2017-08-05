@@ -1,0 +1,182 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_instruments_played
+field_name: field_instruments_played
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: '1'
+      label: 'Acoustic Guitar'
+    -
+      value: '2'
+      label: 'Classical Guitar'
+    -
+      value: '3'
+      label: 'Electric Guitar'
+    -
+      value: '4'
+      label: 'Pedal Steel Guitar'
+    -
+      value: '5'
+      label: 'Electric Bass'
+    -
+      value: '6'
+      label: 'Double Bass'
+    -
+      value: '7'
+      label: Ukelele
+    -
+      value: '8'
+      label: Dobro
+    -
+      value: '9'
+      label: Mandolin
+    -
+      value: '10'
+      label: Accordeon
+    -
+      value: '11'
+      label: Organ
+    -
+      value: '12'
+      label: Piano
+    -
+      value: '13'
+      label: Keyboards
+    -
+      value: '14'
+      label: 'Drum Set'
+    -
+      value: '15'
+      label: Percussion
+    -
+      value: '16'
+      label: Vibraphone
+    -
+      value: '17'
+      label: 'Lead Vocal Rock/Pop'
+    -
+      value: '18'
+      label: 'Lead Vocal Jazz'
+    -
+      value: '19'
+      label: Alto
+    -
+      value: '20'
+      label: Baritone
+    -
+      value: '21'
+      label: Contralto
+    -
+      value: '22'
+      label: 'Counter Tenor'
+    -
+      value: '23'
+      label: 'Mezzo Soprano'
+    -
+      value: '24'
+      label: Soprano
+    -
+      value: '25'
+      label: Tenor
+    -
+      value: '26'
+      label: Banjo
+    -
+      value: '27'
+      label: Ngoni
+    -
+      value: '28'
+      label: Xalam
+    -
+      value: '29'
+      label: Kora
+    -
+      value: '30'
+      label: Cello
+    -
+      value: '31'
+      label: Harp
+    -
+      value: '32'
+      label: Sitar
+    -
+      value: '33'
+      label: Viola
+    -
+      value: '34'
+      label: Violin
+    -
+      value: '35'
+      label: Fiddle
+    -
+      value: '36'
+      label: 'French Horn'
+    -
+      value: '37'
+      label: Trombone
+    -
+      value: '38'
+      label: Trumpet
+    -
+      value: '39'
+      label: Tuba
+    -
+      value: '40'
+      label: Bagpipes
+    -
+      value: '41'
+      label: Bassoon
+    -
+      value: '42'
+      label: Clarinet
+    -
+      value: '43'
+      label: Flute
+    -
+      value: '44'
+      label: Harmonica
+    -
+      value: '45'
+      label: Oboe
+    -
+      value: '46'
+      label: 'Pan Flute'
+    -
+      value: '47'
+      label: 'Alto Sax'
+    -
+      value: '48'
+      label: Balafon
+    -
+      value: '49'
+      label: Djembe
+    -
+      value: '50'
+      label: 'Baritone Saxophone'
+    -
+      value: '51'
+      label: 'Soprano Saxophone'
+    -
+      value: '52'
+      label: 'Tenor Saxophone'
+    -
+      value: '53'
+      label: DJ
+    -
+      value: '54'
+      label: Other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 10
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

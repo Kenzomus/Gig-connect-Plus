@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.artists
+  module:
+    - node
+    - views
+  theme:
+    - bootstrap
+id: views_block__artists_block_2_2
+theme: bootstrap
+region: sidebar_second
+weight: -12
+provider: null
+plugin: 'views_block:artists-block_2'
+settings:
+  id: 'views_block:artists-block_2'
+  label: 'Artist Featured Music'
+  provider: views
+  label_display: visible
+  views_label: 'Artist Featured Music'
+  items_per_page: none
+visibility:
+  node_type:
+    id: node_type
+    bundles:
+      artist: artist
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'
