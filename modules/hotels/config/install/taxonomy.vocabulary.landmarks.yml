@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+name: Landmarks
+vid: landmarks
+description: 'This are the landmarks for each hotel'
+hierarchy: 0
+weight: 0

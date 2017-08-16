@@ -1,0 +1,23 @@
+name: Hotels
+description: 'Provides Hotels content type and related configuration. This is where we store all the information about hotels in the region'
+type: module
+core: 8.x
+dependencies:
+  - block
+  - ctools
+  - field
+  - file
+  - image
+  - link
+  - menu_ui
+  - node
+  - path
+  - scheduler
+  - simple_gmap
+  - taxonomy
+  - telephone
+  - text
+  - user
+  - video_embed_field
+  - views
+  - views_slideshow

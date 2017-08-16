@@ -1,0 +1,116 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.hotels.body
+    - field.field.node.hotels.field_book_me
+    - field.field.node.hotels.field_book_me_
+    - field.field.node.hotels.field_hotel_image
+    - field.field.node.hotels.field_hotel_phone
+    - field.field.node.hotels.field_hotel_videos
+    - field.field.node.hotels.field_hotel_website
+    - field.field.node.hotels.field_landmarks
+    - field.field.node.hotels.field_map_to_hotel
+    - field.field.node.hotels.field_slides
+    - node.type.hotels
+  module:
+    - image
+    - link
+    - simple_gmap
+    - telephone
+    - text
+    - user
+    - video_embed_field
+id: node.hotels.default
+targetEntityType: node
+bundle: hotels
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 2
+    settings: {  }
+    third_party_settings: {  }
+  field_book_me:
+    weight: 9
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_book_me_:
+    weight: 8
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_hotel_image:
+    weight: 0
+    label: hidden
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    type: image
+  field_hotel_phone:
+    weight: 4
+    label: inline
+    settings:
+      title: ''
+    third_party_settings: {  }
+    type: telephone_link
+  field_hotel_videos:
+    weight: 7
+    label: hidden
+    settings:
+      responsive: true
+      width: 854
+      height: 480
+      autoplay: false
+    third_party_settings: {  }
+    type: video_embed_field_video
+  field_hotel_website:
+    weight: 3
+    label: hidden
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: {  }
+    type: link
+  field_landmarks:
+    weight: 6
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_map_to_hotel:
+    weight: 5
+    label: hidden
+    settings:
+      include_static_map: '1'
+      apikey: ''
+      iframe_width: '300'
+      iframe_height: '300'
+      static_scale: '1'
+      include_link: '1'
+      link_text: 'View larger map'
+      zoom_level: '14'
+      map_type: m
+      langcode: en
+      include_map: 0
+      include_text: 0
+    third_party_settings: {  }
+    type: simple_gmap
+  links:
+    weight: 1
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  addtoany: true
+  field_slides: true
