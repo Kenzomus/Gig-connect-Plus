@@ -6,10 +6,10 @@ use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\editor\Entity\Editor;
-use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 
 /**
  * @group quickedit
@@ -30,6 +30,11 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     'block_content',
     'hold_test',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * A user with permissions to edit Articles and use Quick Edit.
@@ -141,8 +146,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     ]);
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
       'node/1/title/en/full'      => 'inactive',
-      'node/1/uid/en/full'        => 'inactive',
-      'node/1/created/en/full'    => 'inactive',
       'node/1/body/en/full'       => 'inactive',
       'node/1/field_tags/en/full' => 'inactive',
     ]);
@@ -155,8 +158,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $this->assertQuickEditEntityToolbar((string) $node->label(), NULL);
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
       'node/1/title/en/full'      => 'candidate',
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'candidate',
     ]);
@@ -169,8 +170,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $this->assertQuickEditEntityToolbar((string) $node->label(), 'Title');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
       'node/1/title/en/full'      => 'active',
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'candidate',
     ]);
@@ -183,8 +182,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $this->awaitEntityInstanceFieldState('node', 1, 0, 'title', 'en', 'changed');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
       'node/1/title/en/full'      => 'changed',
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'candidate',
     ]);
@@ -196,8 +193,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $this->assertQuickEditEntityToolbar((string) $node->label(), 'Body');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
       'node/1/title/en/full'      => 'saving',
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'active',
       'node/1/field_tags/en/full' => 'candidate',
     ]);
@@ -220,8 +215,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $assert_session->waitForElement('css', '.quickedit-toolbar-field div[id*="tags"]');
     $this->assertQuickEditEntityToolbar((string) $node->label(), 'Tags');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'activating',
       'node/1/title/en/full'      => 'candidate',
@@ -236,8 +229,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     // Wait for the form to load.
     $this->assertJsCondition('document.querySelector(\'.quickedit-form-container > .quickedit-form[role="dialog"] > .placeholder\') === null');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'active',
       'node/1/title/en/full'      => 'candidate',
@@ -247,8 +238,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
     $this->typeInFormEditorTextInputField('field_tags[target_id]', 'foo, bar');
     $this->awaitEntityInstanceFieldState('node', 1, 0, 'field_tags', 'en', 'changed');
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'changed',
       'node/1/title/en/full'      => 'candidate',
@@ -261,8 +250,6 @@ class QuickEditIntegrationTest extends QuickEditJavascriptTestBase {
       'node/1[0]' => 'committing',
     ]);
     $this->assertEntityInstanceFieldStates('node', 1, 0, [
-      'node/1/uid/en/full'        => 'candidate',
-      'node/1/created/en/full'    => 'candidate',
       'node/1/body/en/full'       => 'candidate',
       'node/1/field_tags/en/full' => 'saving',
       'node/1/title/en/full'      => 'candidate',

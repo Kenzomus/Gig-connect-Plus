@@ -7,7 +7,6 @@ use Drupal\Core\Database\DatabaseExceptionWrapper;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseNotFoundException;
-use Drupal\Core\Database\TransactionCommitFailedException;
 use Drupal\Core\Database\DatabaseException;
 use Drupal\Core\Database\Connection as DatabaseConnection;
 use Drupal\Component\Utility\Unicode;
@@ -53,6 +52,15 @@ class Connection extends DatabaseConnection {
    * @var bool
    */
   protected $needsCleanup = FALSE;
+
+  /**
+   * Stores the server version after it has been retrieved from the database.
+   *
+   * @var string
+   *
+   * @see \Drupal\Core\Database\Driver\mysql\Connection::version
+   */
+  private $serverVersion;
 
   /**
    * The minimal possible value for the max_allowed_packet setting of MySQL.
@@ -409,12 +417,9 @@ class Connection extends DatabaseConnection {
       \PDO::MYSQL_ATTR_FOUND_ROWS => TRUE,
       // Because MySQL's prepared statements skip the query cache, because it's dumb.
       \PDO::ATTR_EMULATE_PREPARES => TRUE,
+      // Limit SQL to a single statement like mysqli.
+      \PDO::MYSQL_ATTR_MULTI_STATEMENTS => FALSE,
     ];
-    if (defined('\PDO::MYSQL_ATTR_MULTI_STATEMENTS')) {
-      // An added connection option in PHP 5.5.21 to optionally limit SQL to a
-      // single statement like mysqli.
-      $connection_options['pdo'] += [\PDO::MYSQL_ATTR_MULTI_STATEMENTS => FALSE];
-    }
 
     try {
       $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
@@ -550,6 +555,56 @@ class Connection extends DatabaseConnection {
     return 'mysql';
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function version() {
+    if ($this->isMariaDb()) {
+      return $this->getMariaDbVersionMatch();
+    }
+
+    return $this->getServerVersion();
+  }
+
+  /**
+   * Determines whether the MySQL distribution is MariaDB or not.
+   *
+   * @return bool
+   *   Returns TRUE if the distribution is MariaDB, or FALSE if not.
+   */
+  public function isMariaDb(): bool {
+    return (bool) $this->getMariaDbVersionMatch();
+  }
+
+  /**
+   * Gets the MariaDB portion of the server version.
+   *
+   * @return string
+   *   The MariaDB portion of the server version if present, or NULL if not.
+   */
+  protected function getMariaDbVersionMatch(): ?string {
+    // MariaDB may prefix its version string with '5.5.5-', which should be
+    // ignored.
+    // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
+    $regex = '/^(?:5\.5\.5-)?(\d+\.\d+\.\d+.*-mariadb.*)/i';
+
+    preg_match($regex, $this->getServerVersion(), $matches);
+    return (empty($matches[1])) ? NULL : $matches[1];
+  }
+
+  /**
+   * Gets the server version.
+   *
+   * @return string
+   *   The PDO server version.
+   */
+  protected function getServerVersion(): string {
+    if (!$this->serverVersion) {
+      $this->serverVersion = $this->connection->query('SELECT VERSION()')->fetchColumn();
+    }
+    return $this->serverVersion;
+  }
+
   public function databaseType() {
     return 'mysql';
   }
@@ -610,7 +665,7 @@ class Connection extends DatabaseConnection {
     // counter.
     try {
       $max_id = $this->query('SELECT MAX(value) FROM {sequences}')->fetchField();
-      // We know we are using MySQL here, no need for the slower db_delete().
+      // We know we are using MySQL here, no need for the slower ::delete().
       $this->query('DELETE FROM {sequences} WHERE value < :value', [':value' => $max_id]);
     }
     // During testing, this function is called from shutdown with the
@@ -637,9 +692,7 @@ class Connection extends DatabaseConnection {
       // If there are no more layers left then we should commit.
       unset($this->transactionLayers[$name]);
       if (empty($this->transactionLayers)) {
-        if (!$this->connection->commit()) {
-          throw new TransactionCommitFailedException();
-        }
+        $this->doCommit();
       }
       else {
         // Attempt to release this savepoint in the standard way.
@@ -660,7 +713,7 @@ class Connection extends DatabaseConnection {
             $this->transactionLayers = [];
             // We also have to explain to PDO that the transaction stack has
             // been cleaned-up.
-            $this->connection->commit();
+            $this->doCommit();
           }
           else {
             throw $e;
