@@ -23,7 +23,7 @@ class FieldGroupRowsTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'field',
     'filter',
     'node',
@@ -43,7 +43,10 @@ class FieldGroupRowsTest extends ViewsKernelTestBase {
     $this->installConfig(['filter']);
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
-    NodeType::create(['type' => 'page'])->save();
+    NodeType::create([
+      'type' => 'page',
+      'name' => 'Page',
+    ])->save();
 
     // Create a text with unlimited cardinality.
     FieldStorageConfig::create([

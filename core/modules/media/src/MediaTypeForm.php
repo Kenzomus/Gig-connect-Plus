@@ -97,7 +97,7 @@ class MediaTypeForm extends EntityForm {
       '#title' => $this->t('Name'),
       '#type' => 'textfield',
       '#default_value' => $this->entity->label(),
-      '#description' => $this->t('The human-readable name of this media type.'),
+      '#description' => $this->t('The human-readable name for this media type, displayed on the <em>Media types</em> page.'),
       '#required' => TRUE,
       '#size' => 30,
     ];
@@ -110,14 +110,14 @@ class MediaTypeForm extends EntityForm {
       '#machine_name' => [
         'exists' => [MediaType::class, 'load'],
       ],
-      '#description' => $this->t('A unique machine-readable name for this media type.'),
+      '#description' => $this->t('Unique machine-readable name: lowercase letters, numbers, and underscores only.'),
     ];
 
     $form['description'] = [
       '#title' => $this->t('Description'),
       '#type' => 'textarea',
       '#default_value' => $this->entity->getDescription(),
-      '#description' => $this->t('Describe this media type. The text will be displayed on the <em>Add new media</em> page.'),
+      '#description' => $this->t('Displays on the <em>Media types</em> page.'),
     ];
 
     $plugins = $this->sourceManager->getDefinitions();
@@ -182,13 +182,15 @@ class MediaTypeForm extends EntityForm {
         }
       }
 
+      natcasesort($options);
+
       $field_map = $this->entity->getFieldMap();
       foreach ($source->getMetadataAttributes() as $metadata_attribute_name => $metadata_attribute_label) {
         $form['source_dependent']['field_map'][$metadata_attribute_name] = [
           '#type' => 'select',
           '#title' => $metadata_attribute_label,
           '#options' => $options,
-          '#default_value' => isset($field_map[$metadata_attribute_name]) ? $field_map[$metadata_attribute_name] : MediaSourceInterface::METADATA_FIELD_EMPTY,
+          '#default_value' => $field_map[$metadata_attribute_name] ?? MediaSourceInterface::METADATA_FIELD_EMPTY,
         ];
       }
     }

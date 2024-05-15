@@ -9,14 +9,14 @@ use Drupal\user\Entity\Role;
  * JSON:API integration test for the "Role" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class RoleTest extends ResourceTestBase {
-
+class RoleTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['user'];
+  protected static $modules = ['user'];
 
   /**
    * {@inheritdoc}
@@ -53,7 +53,7 @@ class RoleTest extends ResourceTestBase {
   protected function createEntity() {
     $role = Role::create([
       'id' => 'llama',
-      'name' => $this->randomString(),
+      'label' => 'Llama',
     ]);
     $role->save();
 
@@ -88,7 +88,7 @@ class RoleTest extends ResourceTestBase {
           'langcode' => 'en',
           'status' => TRUE,
           'dependencies' => [],
-          'label' => NULL,
+          'label' => 'Llama',
           'is_admin' => NULL,
           'permissions' => [],
           'drupal_internal__id' => 'llama',
@@ -102,6 +102,7 @@ class RoleTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

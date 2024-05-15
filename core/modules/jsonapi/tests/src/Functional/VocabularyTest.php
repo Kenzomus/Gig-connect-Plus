@@ -9,13 +9,14 @@ use Drupal\taxonomy\Entity\Vocabulary;
  * JSON:API integration test for the "vocabulary" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class VocabularyTest extends ResourceTestBase {
+class VocabularyTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy'];
+  protected static $modules = ['taxonomy'];
 
   /**
    * {@inheritdoc}
@@ -100,6 +101,7 @@ class VocabularyTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

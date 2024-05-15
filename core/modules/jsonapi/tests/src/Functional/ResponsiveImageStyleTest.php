@@ -9,13 +9,14 @@ use Drupal\responsive_image\Entity\ResponsiveImageStyle;
  * JSON:API integration test for the "ResponsiveImageStyle" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class ResponsiveImageStyleTest extends ResourceTestBase {
+class ResponsiveImageStyleTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['responsive_image'];
+  protected static $modules = ['responsive_image'];
 
   /**
    * {@inheritdoc}
@@ -142,6 +143,7 @@ class ResponsiveImageStyleTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

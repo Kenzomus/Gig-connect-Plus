@@ -10,18 +10,6 @@ use Drupal\Component\Gettext\PoItem;
 class PluralTranslatableMarkup extends TranslatableMarkup {
 
   /**
-   * The delimiter used to split plural strings.
-   *
-   * This is the ETX (End of text) character and is used as a minimal means to
-   * separate singular and plural variants in source and translation text. It
-   * was found to be the most compatible delimiter for the supported databases.
-   *
-   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
-   *   Use Drupal\Component\Gettext\PoItem::DELIMITER instead.
-   */
-  const DELIMITER = PoItem::DELIMITER;
-
-  /**
    * The item count to display.
    *
    * @var int
@@ -119,28 +107,15 @@ class PluralTranslatableMarkup extends TranslatableMarkup {
     $arguments['@count'] = $this->count;
     $translated_array = explode(PoItem::DELIMITER, $this->translatedString);
 
-    if ($this->count == 1) {
-      return $this->placeholderFormat($translated_array[0], $arguments);
-    }
-
     $index = $this->getPluralIndex();
-    if ($index == 0) {
+    if ($this->count == 1 || $index == 0 || count($translated_array) == 1) {
       // Singular form.
       $return = $translated_array[0];
     }
     else {
-      if (isset($translated_array[$index])) {
-        // N-th plural form.
-        $return = $translated_array[$index];
-      }
-      else {
-        // If the index cannot be computed or there's no translation, use the
-        // second plural form as a fallback (which allows for most flexibility
-        // with the replaceable @count value).
-        $return = $translated_array[1];
-      }
+      // Nth plural form, fallback to second plural form.
+      $return = $translated_array[$index] ?? $translated_array[1];
     }
-
     return $this->placeholderFormat($return, $arguments);
   }
 

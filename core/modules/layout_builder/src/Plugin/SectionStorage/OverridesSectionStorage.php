@@ -93,17 +93,13 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, SectionStorageManagerInterface $section_storage_manager, EntityRepositoryInterface $entity_repository, AccountInterface $current_user = NULL) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, SectionStorageManagerInterface $section_storage_manager, EntityRepositoryInterface $entity_repository, AccountInterface $current_user) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->entityTypeManager = $entity_type_manager;
     $this->entityFieldManager = $entity_field_manager;
     $this->sectionStorageManager = $section_storage_manager;
     $this->entityRepository = $entity_repository;
-    if (!$current_user) {
-      @trigger_error('The current_user service must be passed to OverridesSectionStorage::__construct(), it is required before Drupal 9.0.0.', E_USER_DEPRECATED);
-      $current_user = \Drupal::currentUser();
-    }
     $this->currentUser = $current_user;
   }
 
@@ -167,37 +163,6 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
   /**
    * {@inheritdoc}
    */
-  public function extractIdFromRoute($value, $definition, $name, array $defaults) {
-    @trigger_error('\Drupal\layout_builder\SectionStorageInterface::extractIdFromRoute() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. \Drupal\layout_builder\SectionStorageInterface::deriveContextsFromRoute() should be used instead. See https://www.drupal.org/node/3016262.', E_USER_DEPRECATED);
-    if (strpos($value, '.') !== FALSE) {
-      return $value;
-    }
-
-    if (isset($defaults['entity_type_id']) && !empty($defaults[$defaults['entity_type_id']])) {
-      $entity_type_id = $defaults['entity_type_id'];
-      $entity_id = $defaults[$entity_type_id];
-      return $entity_type_id . '.' . $entity_id;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSectionListFromId($id) {
-    @trigger_error('\Drupal\layout_builder\SectionStorageInterface::getSectionListFromId() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. The section list should be derived from context. See https://www.drupal.org/node/3016262.', E_USER_DEPRECATED);
-    if (strpos($id, '.') !== FALSE) {
-      list($entity_type_id, $entity_id) = explode('.', $id, 2);
-      $entity = $this->entityRepository->getActive($entity_type_id, $entity_id);
-      if ($entity instanceof FieldableEntityInterface && $entity->hasField(static::FIELD_NAME)) {
-        return $entity->get(static::FIELD_NAME);
-      }
-    }
-    throw new \InvalidArgumentException(sprintf('The "%s" ID for the "%s" section storage type is invalid', $id, $this->getStorageType()));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function deriveContextsFromRoute($value, $definition, $name, array $defaults) {
     $contexts = [];
 
@@ -223,14 +188,16 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
    *   The route defaults array.
    *
    * @return \Drupal\Core\Entity\EntityInterface|null
-   *   The entity for the route, or NULL if none exist.
+   *   The entity for the route, or NULL if none exist. The entity is not
+   *   guaranteed to be fieldable, or contain the necessary field for this
+   *   section storage plugin.
    *
    * @see \Drupal\layout_builder\SectionStorageInterface::deriveContextsFromRoute()
    * @see \Drupal\Core\ParamConverter\ParamConverterInterface::convert()
    */
   private function extractEntityFromRoute($value, array $defaults) {
-    if (strpos($value, '.') !== FALSE) {
-      list($entity_type_id, $entity_id) = explode('.', $value, 2);
+    if (str_contains($value, '.')) {
+      [$entity_type_id, $entity_id] = explode('.', $value, 2);
     }
     elseif (isset($defaults['entity_type_id']) && !empty($defaults[$defaults['entity_type_id']])) {
       $entity_type_id = $defaults['entity_type_id'];
@@ -241,9 +208,7 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
     }
 
     $entity = $this->entityRepository->getActive($entity_type_id, $entity_id);
-    if ($entity instanceof FieldableEntityInterface && $entity->hasField(static::FIELD_NAME)) {
-      return $entity;
-    }
+    return ($entity instanceof FieldableEntityInterface) ? $entity : NULL;
   }
 
   /**
@@ -346,7 +311,6 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
   public function getContextsDuringPreview() {
     $contexts = parent::getContextsDuringPreview();
 
-    // @todo Remove this in https://www.drupal.org/node/3018782.
     if (isset($contexts['entity'])) {
       $contexts['layout_builder.entity'] = $contexts['entity'];
       unset($contexts['entity']);
@@ -395,6 +359,8 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
 
     // Access also depends on the default being enabled.
     $result = $result->andIf($this->getDefaultSectionStorage()->access($operation, $account, TRUE));
+    // Access also depends on the default layout being overridable.
+    $result = $result->andIf(AccessResult::allowedIf($this->getDefaultSectionStorage()->isOverridable())->addCacheableDependency($this->getDefaultSectionStorage()));
     $result = $this->handleTranslationAccess($result, $operation, $account);
     return $return_as_object ? $result : $result->isAllowed();
   }

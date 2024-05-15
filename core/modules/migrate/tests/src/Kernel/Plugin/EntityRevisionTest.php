@@ -7,6 +7,8 @@ use Drupal\node\Entity\Node;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 
+// cspell:ignore tabarnak
+
 /**
  * Tests the EntityRevision destination plugin.
  *
@@ -19,7 +21,7 @@ class EntityRevisionTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'content_translation',
     'field',
     'filter',
@@ -33,7 +35,7 @@ class EntityRevisionTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');

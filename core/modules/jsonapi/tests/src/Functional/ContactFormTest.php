@@ -9,13 +9,14 @@ use Drupal\Core\Url;
  * JSON:API integration test for the "ContactForm" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class ContactFormTest extends ResourceTestBase {
+class ContactFormTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['contact'];
+  protected static $modules = ['contact'];
 
   /**
    * {@inheritdoc}
@@ -112,6 +113,7 @@ class ContactFormTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

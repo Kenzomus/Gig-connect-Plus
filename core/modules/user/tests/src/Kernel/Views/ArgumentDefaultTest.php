@@ -38,9 +38,8 @@ class ArgumentDefaultTest extends KernelTestBase {
    * Tests the current user with argument default.
    */
   public function testPluginArgumentDefaultCurrentUser() {
-    $this->installSchema('system', ['sequences']);
     $this->installEntitySchema('user');
-    ViewTestData::createTestViews(get_class($this), ['user_test_views']);
+    ViewTestData::createTestViews(static::class, ['user_test_views']);
 
     // Create a user to test.
     $account = $this->createUser();

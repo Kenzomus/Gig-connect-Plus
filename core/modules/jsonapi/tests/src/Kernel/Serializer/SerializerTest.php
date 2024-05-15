@@ -24,7 +24,8 @@ class SerializerTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
+    'file',
     'serialization',
     'system',
     'node',
@@ -57,15 +58,21 @@ class SerializerTest extends JsonapiKernelTestBase {
   protected $sut;
 
   /**
+   * A user.
+   *
+   * @var \Drupal\user\Entity\User
+   */
+  protected User $user;
+
+  /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add the entity schemas.
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     // Add the additional table schemas.
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('user', ['users_data']);
     $this->user = User::create([
@@ -75,6 +82,7 @@ class SerializerTest extends JsonapiKernelTestBase {
     $this->user->save();
     NodeType::create([
       'type' => 'foo',
+      'name' => 'Foo',
     ])->save();
     $this->createTextField('node', 'foo', 'field_text', 'Text');
     $this->node = Node::create([

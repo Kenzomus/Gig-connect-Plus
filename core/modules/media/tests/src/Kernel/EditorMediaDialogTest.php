@@ -13,6 +13,7 @@ use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 /**
  * @coversDefaultClass \Drupal\media\Form\EditorMediaDialog
  * @group media
+ * @group legacy
  */
 class EditorMediaDialogTest extends KernelTestBase {
 
@@ -35,7 +36,7 @@ class EditorMediaDialogTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installSchema('file', ['file_usage']);
@@ -54,6 +55,7 @@ class EditorMediaDialogTest extends KernelTestBase {
       'filters' => [
         'media_embed' => ['status' => TRUE],
       ],
+      'name' => 'Media embed on',
     ]);
 
     $editor = $this->prophesize(EditorInterface::class);

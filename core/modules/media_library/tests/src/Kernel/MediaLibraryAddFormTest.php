@@ -38,13 +38,12 @@ class MediaLibraryAddFormTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
-    $this->installSchema('system', ['sequences', 'key_value_expire']);
     $this->installEntitySchema('media');
     $this->installConfig([
       'field',

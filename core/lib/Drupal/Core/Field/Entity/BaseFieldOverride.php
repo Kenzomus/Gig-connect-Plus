@@ -37,6 +37,9 @@ use Drupal\Core\Field\FieldException;
  *     "default_value_callback",
  *     "settings",
  *     "field_type",
+ *   },
+ *   constraints = {
+ *     "ImmutableProperties" = {"id", "entity_type", "bundle", "field_name", "field_type"},
  *   }
  * )
  */
@@ -48,6 +51,11 @@ class BaseFieldOverride extends FieldConfigBase {
    * @var \Drupal\Core\Field\BaseFieldDefinition
    */
   protected $baseFieldDefinition;
+
+  /**
+   * The original override.
+   */
+  public BaseFieldOverride $original;
 
   /**
    * Creates a base field override object.
@@ -143,6 +151,13 @@ class BaseFieldOverride extends FieldConfigBase {
   /**
    * {@inheritdoc}
    */
+  public function isInternal(): bool {
+    return $this->getBaseFieldDefinition()->isInternal();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getClass() {
     return $this->getBaseFieldDefinition()->getClass();
   }
@@ -233,7 +248,7 @@ class BaseFieldOverride extends FieldConfigBase {
    * @param string $field_name
    *   Name of the field.
    *
-   * @return static
+   * @return \Drupal\Core\Field\FieldConfigInterface|null
    *   The base field bundle override config entity if one exists for the
    *   provided field name, otherwise NULL.
    */

@@ -57,7 +57,11 @@ class VersionNegotiatorTest extends JsonapiKernelTestBase {
    */
   protected $node2;
 
-  public static $modules = [
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'file',
     'node',
     'field',
     'jsonapi',
@@ -69,17 +73,17 @@ class VersionNegotiatorTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add the entity schemas.
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     // Add the additional table schemas.
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('user', ['users_data']);
     $type = NodeType::create([
       'type' => 'dummy',
+      'name' => 'Dummy',
       'new_revision' => TRUE,
     ]);
     $type->save();

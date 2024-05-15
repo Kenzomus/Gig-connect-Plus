@@ -4,6 +4,7 @@ namespace Drupal\KernelTests\Core\Extension;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Extension\MissingDependencyException;
+use Drupal\Core\Extension\Exception\ObsoleteExtensionException;
 use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -59,21 +60,21 @@ class ModuleInstallerTest extends KernelTestBase {
    */
   public function testCacheBinCleanup() {
     $schema = $this->container->get('database')->schema();
-    $table = 'cache_module_cachebin';
+    $table = 'cache_module_cache_bin';
 
     $module_installer = $this->container->get('module_installer');
-    $module_installer->install(['module_cachebin']);
+    $module_installer->install(['module_cache_bin']);
 
     // Prime the bin.
     /** @var \Drupal\Core\Cache\CacheBackendInterface $cache_bin */
-    $cache_bin = $this->container->get('module_cachebin.cache_bin');
+    $cache_bin = $this->container->get('module_cache_bin.cache_bin');
     $cache_bin->set('foo', 'bar');
 
     // A database backend is used so there is a convenient way check whether the
     // backend is uninstalled.
     $this->assertTrue($schema->tableExists($table));
 
-    $module_installer->uninstall(['module_cachebin']);
+    $module_installer->uninstall(['module_cache_bin']);
     $this->assertFalse($schema->tableExists($table));
   }
 
@@ -99,18 +100,10 @@ class ModuleInstallerTest extends KernelTestBase {
   }
 
   /**
-   * Dataprovider for testInvalidCoreInstall().
+   * Data provider for testInvalidCoreInstall().
    */
   public function providerTestInvalidCoreInstall() {
     return [
-      'no dependencies system_incompatible_core_version_test_1x' => [
-        'system_incompatible_core_version_test_1x',
-        FALSE,
-      ],
-      'install_dependencies system_incompatible_core_version_test_1x' => [
-        'system_incompatible_core_version_test_1x',
-        TRUE,
-      ],
       'no dependencies system_core_incompatible_semver_test' => [
         'system_core_incompatible_semver_test',
         FALSE,
@@ -129,7 +122,7 @@ class ModuleInstallerTest extends KernelTestBase {
    */
   public function testDependencyInvalidCoreInstall() {
     $this->expectException(MissingDependencyException::class);
-    $this->expectExceptionMessage("Unable to install modules: module 'system_incompatible_core_version_dependencies_test'. Its dependency module 'system_incompatible_core_version_test' is incompatible with this version of Drupal core.");
+    $this->expectExceptionMessage("Unable to install modules: module 'system_incompatible_core_version_dependencies_test'. Its dependency module 'system_core_incompatible_semver_test' is incompatible with this version of Drupal core.");
     $this->container->get('module_installer')->install(['system_incompatible_core_version_dependencies_test']);
   }
 
@@ -140,6 +133,30 @@ class ModuleInstallerTest extends KernelTestBase {
    */
   public function testDependencyInvalidCoreInstallNoDependencies() {
     $this->assertTrue($this->container->get('module_installer')->install(['system_incompatible_core_version_dependencies_test'], FALSE));
+  }
+
+  /**
+   * Tests trying to install an obsolete module.
+   *
+   * @covers ::install
+   */
+  public function testObsoleteInstall() {
+    $this->expectException(ObsoleteExtensionException::class);
+    $this->expectExceptionMessage("Unable to install modules: module 'system_status_obsolete_test' is obsolete.");
+    $this->container->get('module_installer')->install(['system_status_obsolete_test']);
+  }
+
+  /**
+   * Tests trying to install a deprecated module.
+   *
+   * @covers ::install
+   *
+   * @group legacy
+   */
+  public function testDeprecatedInstall() {
+    $this->expectDeprecation("The module 'deprecated_module' is deprecated. See http://example.com/deprecated");
+    \Drupal::service('module_installer')->install(['deprecated_module']);
+    $this->assertTrue(\Drupal::service('module_handler')->moduleExists('deprecated_module'));
   }
 
 }

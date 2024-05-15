@@ -4,6 +4,7 @@ namespace Drupal\Tests\jsonapi\Kernel\ResourceType;
 
 use Drupal\Tests\jsonapi\Kernel\JsonapiKernelTestBase;
 use Drupal\node\Entity\NodeType;
+use PHPUnit\Framework\Error\Warning;
 
 /**
  * @coversDefaultClass \Drupal\jsonapi\ResourceType\ResourceType
@@ -17,7 +18,8 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
+    'file',
     'node',
     'jsonapi',
     'serialization',
@@ -50,23 +52,24 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add the entity schemas.
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
 
     // Add the additional table schemas.
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('user', ['users_data']);
 
     NodeType::create([
       'type' => 'foo',
+      'name' => 'Foo',
     ])->save();
 
     NodeType::create([
       'type' => 'bar',
+      'name' => 'Bar',
     ])->save();
 
     $this->createEntityReferenceField(
@@ -134,7 +137,7 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
       }
     }
 
-    $this->assertArraySubset($relatable_type_names, $subjects);
+    $this->assertEquals($relatable_type_names, $subjects);
   }
 
   /**
@@ -177,6 +180,48 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
       ['node', 'foo', 'field_ref_bar'],
       ['node', 'foo', 'field_ref_any'],
     ];
+  }
+
+  /**
+   * Ensure a graceful failure when a field can references a missing bundle.
+   *
+   * @covers \Drupal\jsonapi\ResourceType\ResourceTypeRepository::all
+   * @covers \Drupal\jsonapi\ResourceType\ResourceTypeRepository::calculateRelatableResourceTypes
+   * @covers \Drupal\jsonapi\ResourceType\ResourceTypeRepository::getRelatableResourceTypesFromFieldDefinition
+   *
+   * @link https://www.drupal.org/project/drupal/issues/2996114
+   */
+  public function testGetRelatableResourceTypesFromFieldDefinition() {
+    $field_config_storage = $this->container->get('entity_type.manager')->getStorage('field_config');
+
+    static::assertCount(0, $this->resourceTypeRepository->get('node', 'foo')->getRelatableResourceTypesByField('field_relationship'));
+    $this->createEntityReferenceField('node', 'foo', 'field_ref_with_missing_bundle', 'Related entity', 'node', 'default', [
+      'target_bundles' => ['missing_bundle'],
+    ]);
+    $fields = $field_config_storage->loadByProperties(['field_name' => 'field_ref_with_missing_bundle']);
+    static::assertSame(['missing_bundle'], $fields['node.foo.field_ref_with_missing_bundle']->getItemDefinition()->getSetting('handler_settings')['target_bundles']);
+
+    try {
+      $this->resourceTypeRepository->get('node', 'foo')->getRelatableResourceTypesByField('field_ref_with_missing_bundle');
+      static::fail('The above code must produce a warning since the "missing_bundle" does not exist.');
+    }
+    catch (Warning $e) {
+      static::assertSame(
+        'The "field_ref_with_missing_bundle" at "node:foo" references the "node:missing_bundle" entity type that does not exist.',
+        $e->getMessage()
+      );
+    }
+  }
+
+  /**
+   * Test the deprecation error on entity reference fields.
+   *
+   * @group legacy
+   */
+  public function testGetRelatableResourceTypesFromFieldDefinitionEntityReferenceFieldDeprecated(): void {
+    \Drupal::service('module_installer')->install(['jsonapi_test_reference_types']);
+    $this->expectDeprecation('Entity reference field items not implementing Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItemInterface is deprecated in drupal:10.2.0 and will be required in drupal:11.0.0. See https://www.drupal.org/node/3279140');
+    $this->resourceTypeRepository->all();
   }
 
 }

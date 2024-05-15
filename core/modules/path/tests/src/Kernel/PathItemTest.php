@@ -7,6 +7,8 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 
+// cspell:ignore furchtbar
+
 /**
  * Tests loading and storing data using PathItem.
  *
@@ -19,7 +21,7 @@ class PathItemTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'path',
     'path_alias',
     'node',
@@ -32,7 +34,7 @@ class PathItemTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('node');
@@ -41,15 +43,17 @@ class PathItemTest extends KernelTestBase {
 
     $this->installSchema('node', ['node_access']);
 
-    $node_type = NodeType::create(['type' => 'foo']);
-    $node_type->save();
+    NodeType::create([
+      'type' => 'foo',
+      'name' => 'Foo',
+    ])->save();
 
     $this->installConfig(['language']);
     ConfigurableLanguage::createFromLangcode('de')->save();
   }
 
   /**
-   * Test creating, loading, updating and deleting aliases through PathItem.
+   * Tests creating, loading, updating and deleting aliases through PathItem.
    */
   public function testPathItem() {
     /** @var \Drupal\path_alias\AliasRepositoryInterface $alias_repository */

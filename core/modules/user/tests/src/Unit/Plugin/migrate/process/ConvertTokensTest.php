@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\user\Unit\Plugin\migrate\process;
 
 use Drupal\user\Plugin\migrate\process\ConvertTokens;
@@ -15,7 +17,7 @@ class ConvertTokensTest extends MigrateProcessTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->plugin = new ConvertTokens([], 'convert_tokens', []);
   }

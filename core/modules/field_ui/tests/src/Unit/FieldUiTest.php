@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\field_ui\Unit;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -23,7 +25,7 @@ class FieldUiTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->pathValidator = $this->createMock('Drupal\Core\Path\PathValidatorInterface');

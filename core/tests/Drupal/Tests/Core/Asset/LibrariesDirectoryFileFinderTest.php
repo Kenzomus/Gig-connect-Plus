@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Asset;
 
 use Drupal\Core\Asset\LibrariesDirectoryFileFinder;
@@ -81,8 +83,4 @@ class LibrariesDirectoryFileFinderTest extends UnitTestCase {
     $this->assertEquals('sites/example.com/libraries/third_party_library', $path);
   }
 
-}
-
-if (!defined('DRUPAL_MINIMUM_PHP')) {
-  define('DRUPAL_MINIMUM_PHP', '7.0.8');
 }

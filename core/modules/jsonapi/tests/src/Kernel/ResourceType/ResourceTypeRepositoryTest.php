@@ -10,6 +10,7 @@ use Drupal\Tests\jsonapi\Kernel\JsonapiKernelTestBase;
 /**
  * @coversDefaultClass \Drupal\jsonapi\ResourceType\ResourceTypeRepository
  * @group jsonapi
+ * @group #slow
  *
  * @internal
  */
@@ -18,7 +19,8 @@ class ResourceTypeRepositoryTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
+    'file',
     'field',
     'node',
     'serialization',
@@ -37,23 +39,25 @@ class ResourceTypeRepositoryTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add the entity schemas.
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     // Add the additional table schemas.
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('user', ['users_data']);
     NodeType::create([
       'type' => 'article',
+      'name' => 'Article',
     ])->save();
     NodeType::create([
       'type' => 'page',
+      'name' => 'Page',
     ])->save();
     NodeType::create([
       'type' => '42',
+      'name' => '42',
     ])->save();
 
     $this->resourceTypeRepository = $this->container->get('jsonapi.resource_type.repository');
@@ -90,7 +94,7 @@ class ResourceTypeRepositoryTest extends JsonapiKernelTestBase {
   /**
    * Data provider for testGet.
    *
-   * @returns array
+   * @return array
    *   The data for the test method.
    */
   public function getProvider() {
@@ -109,40 +113,41 @@ class ResourceTypeRepositoryTest extends JsonapiKernelTestBase {
     $this->assertEmpty($this->resourceTypeRepository->get('node', 'article')->getRelatableResourceTypesByField('field_relationship'));
     $this->createEntityReferenceField('node', 'article', 'field_relationship', 'Related entity', 'node');
     $this->assertCount(3, $this->resourceTypeRepository->get('node', 'article')->getRelatableResourceTypesByField('field_relationship'));
-    NodeType::create(['type' => 'camelids'])->save();
+    NodeType::create([
+      'type' => 'camelids',
+      'name' => 'Camelids',
+    ])->save();
     $this->assertCount(4, $this->resourceTypeRepository->get('node', 'article')->getRelatableResourceTypesByField('field_relationship'));
   }
 
   /**
-   * Ensures that a naming conflict in the mapping causes an exception to be
-   * thrown.
+   * Ensures that a naming conflict in mapping causes an exception to be thrown.
    *
-   * @covers ::getFieldMapping
-   * @dataProvider getFieldMappingProvider
+   * @covers ::getFields
+   * @dataProvider getFieldsProvider
    */
   public function testMappingNameConflictCheck($field_name_list) {
     $entity_type = \Drupal::entityTypeManager()->getDefinition('node');
     $bundle = 'article';
     $reflection_class = new \ReflectionClass($this->resourceTypeRepository);
     $reflection_method = $reflection_class->getMethod('getFields');
-    $reflection_method->setAccessible(TRUE);
 
     $this->expectException(\LogicException::class);
-    $this->expectExceptionMessage("The generated alias '{$field_name_list[1]}' for field name '{$field_name_list[0]}' conflicts with an existing field. Please report this in the JSON:API issue queue!");
+    $this->expectExceptionMessage("The generated alias '{$field_name_list[1]}' for field name '{$field_name_list[0]}' conflicts with an existing field. Report this in the JSON:API issue queue!");
     $reflection_method->invokeArgs($this->resourceTypeRepository, [$field_name_list, $entity_type, $bundle]);
   }
 
   /**
-   * Data provider for testGetFieldMapping.
+   * Data provider for testMappingNameConflictCheck.
    *
    * These field name lists are designed to trigger a naming conflict in the
    * mapping: the special-cased names "type" or "id", and the name
    * "{$entity_type_id}_type" or "{$entity_type_id}_id", respectively.
    *
-   * @returns array
+   * @return array
    *   The data for the test method.
    */
-  public function getFieldMappingProvider() {
+  public function getFieldsProvider() {
     return [
       [['type', 'node_type']],
       [['id', 'node_id']],
@@ -205,6 +210,21 @@ class ResourceTypeRepositoryTest extends JsonapiKernelTestBase {
     Cache::invalidateTags(['jsonapi_resource_types']);
     $this->assertFalse($this->resourceTypeRepository->getByTypeName('node--article')->isFieldEnabled('uid'));
     $this->assertTrue($this->resourceTypeRepository->getByTypeName('node--page')->isFieldEnabled('uid'));
+  }
+
+  /**
+   * Tests that resource types can be renamed.
+   */
+  public function testResourceTypeRenaming() {
+    \Drupal::state()->set('jsonapi_test_resource_type_builder.renamed_resource_types', [
+      'node--article' => 'articles',
+      'node--page' => 'pages',
+    ]);
+    Cache::invalidateTags(['jsonapi_resource_types']);
+    $this->assertNull($this->resourceTypeRepository->getByTypeName('node--article'));
+    $this->assertInstanceOf(ResourceType::class, $this->resourceTypeRepository->getByTypeName('articles'));
+    $this->assertNull($this->resourceTypeRepository->getByTypeName('node--page'));
+    $this->assertInstanceOf(ResourceType::class, $this->resourceTypeRepository->getByTypeName('pages'));
   }
 
 }

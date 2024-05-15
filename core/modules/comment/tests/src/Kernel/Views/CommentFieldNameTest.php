@@ -49,7 +49,7 @@ class CommentFieldNameTest extends KernelTestBase {
   public static $testViews = ['test_comment_field_name'];
 
   /**
-   * Test comment field name.
+   * Tests comment field name.
    */
   public function testCommentFieldName() {
     $renderer = $this->container->get('renderer');
@@ -57,11 +57,13 @@ class CommentFieldNameTest extends KernelTestBase {
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
     $this->installEntitySchema('comment');
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('comment', ['comment_entity_statistics']);
     $this->installConfig(['filter']);
 
-    NodeType::create(['type' => 'page'])->save();
+    NodeType::create([
+      'type' => 'page',
+      'name' => 'Page',
+    ])->save();
     FieldStorageConfig::create([
       'type' => 'text_long',
       'entity_type' => 'comment',

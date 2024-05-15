@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\views\Unit;
 
 use Drupal\Tests\UnitTestCase;
@@ -58,7 +60,7 @@ class ViewExecutableFactoryTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->user = $this->createMock('Drupal\Core\Session\AccountInterface');

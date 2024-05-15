@@ -25,6 +25,7 @@ class CountryManager implements CountryManagerInterface {
    * Constructor.
    *
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    */
   public function __construct(ModuleHandlerInterface $module_handler) {
     $this->moduleHandler = $module_handler;
@@ -37,6 +38,7 @@ class CountryManager implements CountryManagerInterface {
    *   An array of country code => country name pairs.
    */
   public static function getStandardList() {
+    // cSpell:disable
     $countries = [
       'AC' => t('Ascension Island'),
       'AD' => t('Andorra'),
@@ -90,6 +92,7 @@ class CountryManager implements CountryManagerInterface {
       'CN' => t('China'),
       'CO' => t('Colombia'),
       'CP' => t('Clipperton Island'),
+      'CQ' => t('Sark'),
       'CR' => t('Costa Rica'),
       'CU' => t('Cuba'),
       'CV' => t('Cape Verde'),
@@ -270,7 +273,7 @@ class CountryManager implements CountryManagerInterface {
       'TM' => t('Turkmenistan'),
       'TN' => t('Tunisia'),
       'TO' => t('Tonga'),
-      'TR' => t('Turkey'),
+      'TR' => t('Türkiye'),
       'TT' => t('Trinidad & Tobago'),
       'TV' => t('Tuvalu'),
       'TW' => t('Taiwan'),
@@ -297,6 +300,7 @@ class CountryManager implements CountryManagerInterface {
       'ZM' => t('Zambia'),
       'ZW' => t('Zimbabwe'),
     ];
+    // cSpell:enable
 
     // Sort the list.
     natcasesort($countries);

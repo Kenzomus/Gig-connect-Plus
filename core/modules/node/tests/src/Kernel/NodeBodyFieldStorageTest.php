@@ -19,7 +19,7 @@ class NodeBodyFieldStorageTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'user',
     'system',
     'field',
@@ -28,9 +28,11 @@ class NodeBodyFieldStorageTest extends KernelTestBase {
     'filter',
   ];
 
-  protected function setUp() {
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
     parent::setUp();
-    $this->installSchema('system', 'sequences');
     // Necessary for module uninstall.
     $this->installSchema('user', 'users_data');
     $this->installEntitySchema('user');

@@ -9,13 +9,14 @@ use Drupal\search\Entity\SearchPage;
  * JSON:API integration test for the "SearchPage" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class SearchPageTest extends ResourceTestBase {
+class SearchPageTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'search'];
+  protected static $modules = ['node', 'search'];
 
   /**
    * {@inheritdoc}
@@ -119,6 +120,7 @@ class SearchPageTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

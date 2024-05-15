@@ -21,7 +21,7 @@ class MediaAccessTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'media_test_source',
   ];
@@ -29,19 +29,19 @@ class MediaAccessTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // This is needed to provide the user cache context for a below assertion.
     $this->drupalPlaceBlock('local_tasks_block');
   }
 
   /**
-   * Test some access control functionality.
+   * Tests some access control functionality.
    */
   public function testMediaAccess() {
     $assert_session = $this->assertSession();
@@ -106,7 +106,9 @@ class MediaAccessTest extends MediaFunctionalTestBase {
     $this->assertNoCacheContext('user');
     $this->assertCacheContext('user.permissions');
     $assert_session->statusCodeEquals(200);
-    $user_media->setUnpublished()->save();
+    $previous_revision = $user_media->getLoadedRevisionId();
+    $user_media->setUnpublished()->setNewRevision();
+    $user_media->save();
     $this->drupalGet('media/' . $user_media->id());
     $this->assertCacheContext('user.permissions');
     $assert_session->statusCodeEquals(403);
@@ -116,6 +118,43 @@ class MediaAccessTest extends MediaFunctionalTestBase {
     $this->drupalGet('media/' . $user_media->id());
     $this->assertCacheContext('user');
     $assert_session->statusCodeEquals(200);
+
+    // Test revision access - logged-in user.
+    $this->grantPermissions($role, ['view all media revisions']);
+    $this->drupalGet('media/' . $user_media->id() . '/revisions');
+    $this->assertCacheContext('user');
+    $assert_session->statusCodeEquals(200);
+    $this->drupalGet('media/' . $user_media->id() . '/revisions/' . $user_media->getRevisionId() . '/view');
+    $this->assertCacheContext('user');
+    $assert_session->statusCodeEquals(200);
+    $this->drupalGet('media/' . $user_media->id() . '/revisions/' . $previous_revision . '/view');
+    $this->assertCacheContext('user.permissions');
+    $assert_session->statusCodeEquals(200);
+    $role->revokePermission('view own unpublished media')->save();
+    $this->drupalGet('media/' . $user_media->id() . '/revisions/' . $user_media->getRevisionId() . '/view');
+    $this->assertCacheContext('user.permissions');
+    $assert_session->statusCodeEquals(403);
+
+    $user_media->setPublished()->setNewRevision();
+    $user_media->save();
+
+    // Revision access - logged-out user.
+    $this->drupalLogout();
+    $this->drupalGet('media/' . $user_media->id() . '/revisions');
+    $assert_session->statusCodeEquals(403);
+    $this->drupalGet('media/' . $user_media->id() . '/revisions/' . $user_media->getRevisionId() . '/view');
+    $assert_session->statusCodeEquals(403);
+    $this->drupalGet('media/' . $user_media->id() . '/revisions/' . $previous_revision . '/view');
+    $assert_session->statusCodeEquals(403);
+
+    // Reverse revision access testing changes.
+    $role
+      ->revokePermission('view all media revisions')
+      ->grantPermission('view own unpublished media')
+      ->save();
+    $user_media->setPublished()->setNewRevision();
+    $user_media->save();
+    $this->drupalLogin($this->nonAdminUser);
 
     // Test 'create media' permission.
     $this->drupalGet('media/add/' . $media_type->id());
@@ -185,15 +224,17 @@ class MediaAccessTest extends MediaFunctionalTestBase {
     $this->clickLink('Media');
     $this->assertCacheContext('user');
     $assert_session->statusCodeEquals(200);
-    $assert_session->elementExists('css', '.view-media');
-    $assert_session->pageTextContains($this->loggedInUser->getDisplayName());
-    $assert_session->pageTextContains($this->nonAdminUser->getDisplayName());
-    $assert_session->linkByHrefExists('/media/' . $media->id());
-    $assert_session->linkByHrefExists('/media/' . $user_media->id());
+    $assert_session->elementExists('css', '.views-element-container');
+    // First row of the View contains media created by admin user.
+    $assert_session->elementTextEquals('xpath', '//div[@class="views-element-container"]//tbody/tr[1]/td[contains(@class, "views-field-uid")]/a', $this->adminUser->getDisplayName());
+    $assert_session->elementTextEquals('xpath', "//div[@class='views-element-container']//tbody/tr[1]/td[contains(@class, 'views-field-name')]/a[contains(@href, '/media/{$media->id()}')]", 'Unnamed');
+    // Second row of the View contains media created by non-admin user.
+    $assert_session->elementTextEquals('xpath', '//div[@class="views-element-container"]//tbody/tr[2]/td[contains(@class, "views-field-uid")]/a', $this->nonAdminUser->getDisplayName());
+    $assert_session->elementTextEquals('xpath', "//div[@class='views-element-container']//tbody/tr[2]/td[contains(@class, 'views-field-name')]/a[contains(@href, '/media/{$user_media->id()}')]", 'Unnamed');
   }
 
   /**
-   * Test view access control on the canonical page.
+   * Tests view access control on the canonical page.
    */
   public function testCanonicalMediaAccess() {
     $media_type = $this->createMediaType('test');
@@ -328,7 +369,7 @@ class MediaAccessTest extends MediaFunctionalTestBase {
 
     $this->container->get('router.builder')->rebuild();
 
-    // Create a media type and a entity reference to itself.
+    // Create a media type and an entity reference to itself.
     $media_type = $this->createMediaType('test');
 
     FieldStorageConfig::create([

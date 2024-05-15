@@ -21,7 +21,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'field', 'text', 'filter'];
+  protected static $modules = ['node', 'field', 'text', 'filter'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installConfig(['node', 'filter']);
@@ -42,20 +42,23 @@ class RssFieldsTest extends ViewsKernelTestBase {
   }
 
   /**
-   * Tests correct processing of link fields.
+   * Tests correct processing of RSS fields.
    *
    * This overlaps with \Drupal\Tests\views\Functional\Plugin\DisplayFeedTest to
    * ensure that root-relative links also work in a scenario without
    * subdirectory.
    */
-  public function testLink() {
+  public function testRssFields() {
     // Set up the current user as uid 1 so the test doesn't need to deal with
     // permission.
     $this->setUpCurrentUser(['uid' => 1]);
 
+    $date = '1975-05-18';
+
     $node = $this->createNode([
       'type' => 'article',
       'title' => 'Article title',
+      'created' => strtotime($date),
       'body' => [
         0 => [
           'value' => 'A paragraph',
@@ -72,6 +75,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
     $output = $view->preview('feed_2');
     $output = (string) $renderer->renderRoot($output);
     $this->assertStringContainsString('<link>' . $node_url . '</link>', $output);
+    $this->assertStringContainsString('<pubDate>' . $date . '</pubDate>', $output);
   }
 
 }

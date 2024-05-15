@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Entity\Query\Sql;
 
 use Drupal\Core\Entity\EntityType;
@@ -23,7 +25,7 @@ class QueryTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $entity_type = new EntityType(['id' => 'example_entity_query']);
     $conjunction = 'AND';

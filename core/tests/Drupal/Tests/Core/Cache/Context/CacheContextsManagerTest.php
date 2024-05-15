@@ -1,9 +1,6 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Cache\Context\CacheContextsManagerTest.
- */
+declare(strict_types=1);
 
 namespace Drupal\Tests\Core\Cache\Context;
 
@@ -14,6 +11,8 @@ use Drupal\Core\Cache\Context\CalculatedCacheContextInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\DependencyInjection\Container;
+
+// cspell:ignore cnenzrgre
 
 /**
  * @coversDefaultClass \Drupal\Core\Cache\Context\CacheContextsManager
@@ -32,13 +31,33 @@ class CacheContextsManagerTest extends UnitTestCase {
       ->getMock();
     $container->expects($this->any())
       ->method('get')
-      ->will($this->returnValueMap([
-        ['cache_context.a', Container::EXCEPTION_ON_INVALID_REFERENCE, new FooCacheContext()],
-        ['cache_context.a.b', Container::EXCEPTION_ON_INVALID_REFERENCE, new FooCacheContext()],
-        ['cache_context.a.b.c', Container::EXCEPTION_ON_INVALID_REFERENCE, new BazCacheContext()],
-        ['cache_context.x', Container::EXCEPTION_ON_INVALID_REFERENCE, new BazCacheContext()],
-        ['cache_context.a.b.no-optimize', Container::EXCEPTION_ON_INVALID_REFERENCE, new NoOptimizeCacheContext()],
-      ]));
+      ->willReturnMap([
+        [
+          'cache_context.a',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new FooCacheContext(),
+        ],
+        [
+          'cache_context.a.b',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new FooCacheContext(),
+        ],
+        [
+          'cache_context.a.b.c',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new BazCacheContext(),
+        ],
+        [
+          'cache_context.x',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new BazCacheContext(),
+        ],
+        [
+          'cache_context.a.b.no-optimize',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new NoOptimizeCacheContext(),
+        ],
+      ]);
     $cache_contexts_manager = new CacheContextsManager($container, $this->getContextsFixture());
 
     $this->assertSame($optimized_context_tokens, $cache_contexts_manager->optimizeTokens($context_tokens));
@@ -161,10 +180,18 @@ class CacheContextsManagerTest extends UnitTestCase {
       ->getMock();
     $container->expects($this->any())
       ->method('get')
-      ->will($this->returnValueMap([
-        ['cache_context.foo', Container::EXCEPTION_ON_INVALID_REFERENCE, new FooCacheContext()],
-        ['cache_context.baz', Container::EXCEPTION_ON_INVALID_REFERENCE, new BazCacheContext()],
-      ]));
+      ->willReturnMap([
+        [
+          'cache_context.foo',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new FooCacheContext(),
+        ],
+        [
+          'cache_context.baz',
+          Container::EXCEPTION_ON_INVALID_REFERENCE,
+          new BazCacheContext(),
+        ],
+      ]);
     return $container;
   }
 

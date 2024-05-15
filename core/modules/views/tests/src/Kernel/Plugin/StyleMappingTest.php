@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\views\Kernel\Plugin;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\views\Views;
+use Drupal\views\ViewExecutable;
 
 /**
  * Tests mapping style functionality.
@@ -12,7 +12,7 @@ use Drupal\views\Views;
  */
 class StyleMappingTest extends StyleTestBase {
 
-  public static $modules = ['system'];
+  protected static $modules = ['system'];
 
   /**
    * Views used by this test.
@@ -26,7 +26,7 @@ class StyleMappingTest extends StyleTestBase {
    */
   public function testMappedOutput() {
     $view = Views::getView('test_style_mapping');
-    $output = $this->mappedOutputHelper($view);
+    $output = (string) $this->mappedOutputHelper($view);
     $this->assertStringNotContainsString('job', $output, 'The job field is added to the view but not in the mapping.');
     $view->destroy();
 
@@ -45,9 +45,9 @@ class StyleMappingTest extends StyleTestBase {
    * @return string
    *   The view rendered as HTML.
    */
-  protected function mappedOutputHelper($view) {
+  protected function mappedOutputHelper(ViewExecutable $view) {
     $output = $view->preview();
-    $rendered_output = \Drupal::service('renderer')->renderRoot($output);
+    $rendered_output = (string) \Drupal::service('renderer')->renderRoot($output);
     $this->storeViewPreview($rendered_output);
     $rows = $this->elements->body->div->div;
     $data_set = $this->dataSet();
@@ -69,7 +69,7 @@ class StyleMappingTest extends StyleTestBase {
         // separated by ':'.
         $expected_result = $name . ':' . $data_set[$count][$field_id];
         $actual_result = (string) $field;
-        $this->assertIdentical($expected_result, $actual_result, new FormattableMarkup('The fields were mapped successfully: %name => %field_id', ['%name' => $name, '%field_id' => $field_id]));
+        $this->assertSame($expected_result, $actual_result, "The fields were mapped successfully: $name => $field_id");
       }
 
       $count++;

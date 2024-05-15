@@ -6,6 +6,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\MigrationInterface;
@@ -114,11 +115,11 @@ class EntityRevision extends EntityContentBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, EntityStorageInterface $storage, array $bundles, EntityFieldManagerInterface $entity_field_manager, FieldTypePluginManagerInterface $field_type_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, EntityStorageInterface $storage, array $bundles, EntityFieldManagerInterface $entity_field_manager, FieldTypePluginManagerInterface $field_type_manager, AccountSwitcherInterface $account_switcher) {
     $plugin_definition += [
       'label' => new TranslatableMarkup('@entity_type revisions', ['@entity_type' => $storage->getEntityType()->getSingularLabel()]),
     ];
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $storage, $bundles, $entity_field_manager, $field_type_manager);
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $storage, $bundles, $entity_field_manager, $field_type_manager, $account_switcher);
   }
 
   /**
@@ -136,10 +137,15 @@ class EntityRevision extends EntityContentBase {
     $revision_id = $old_destination_id_values ?
       reset($old_destination_id_values) :
       $row->getDestinationProperty($this->getKey('revision'));
-    if (!empty($revision_id) && ($entity = $this->storage->loadRevision($revision_id))) {
-      $entity->setNewRevision(FALSE);
+    $entity = NULL;
+    if (!empty($revision_id)) {
+      /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
+      $storage = $this->storage;
+      if ($entity = $storage->loadRevision($revision_id)) {
+        $entity->setNewRevision(FALSE);
+      }
     }
-    else {
+    if ($entity === NULL) {
       $entity_id = $row->getDestinationProperty($this->getKey('id'));
       $entity = $this->storage->load($entity_id);
 
@@ -163,6 +169,7 @@ class EntityRevision extends EntityContentBase {
    * {@inheritdoc}
    */
   protected function save(ContentEntityInterface $entity, array $old_destination_id_values = []) {
+    $entity->setSyncing(TRUE);
     $entity->save();
     return [$entity->getRevisionId()];
   }

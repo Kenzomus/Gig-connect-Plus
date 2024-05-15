@@ -110,11 +110,11 @@ class FieldLayoutEntityDisplayTest extends KernelTestBase {
     // After saving, the dependencies have been updated.
     $entity_display->save();
     $expected['dependencies']['module'] = [
-      'dependency_from_annotation',
-      'dependency_from_calculateDependencies',
       'entity_test',
       'field_layout',
       'field_layout_test',
+      'layout_discovery',
+      'system',
     ];
     $this->assertEntityValues($expected, $entity_display->toArray());
 
@@ -175,11 +175,16 @@ class FieldLayoutEntityDisplayTest extends KernelTestBase {
   /**
    * Asserts than an entity has the correct values.
    *
-   * @param mixed $expected
+   * @param array $expected
+   *   The expected values.
    * @param array $values
+   *   The actual values.
    * @param string $message
+   *   (optional) An error message.
+   *
+   * @internal
    */
-  public static function assertEntityValues($expected, array $values, $message = '') {
+  public static function assertEntityValues(array $expected, array $values, string $message = ''): void {
 
     static::assertArrayHasKey('uuid', $values);
     unset($values['uuid']);

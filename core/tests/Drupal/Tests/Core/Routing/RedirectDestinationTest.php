@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Routing;
 
 use Drupal\Component\Utility\UrlHelper;
@@ -38,7 +40,7 @@ class RedirectDestinationTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->requestStack = new RequestStack();

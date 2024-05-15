@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\migrate\Unit\process;
 
 use Drupal\migrate\MigrateException;
@@ -14,7 +16,7 @@ class ArrayBuildTest extends MigrateProcessTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $configuration = [
       'key' => 'foo',
       'value' => 'bar',

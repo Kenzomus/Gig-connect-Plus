@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\FileCache;
 
 use Drupal\Component\FileCache\FileCache;
@@ -17,7 +19,7 @@ class FileCacheFactoryTest extends TestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $configuration = [
@@ -152,7 +154,7 @@ class FileCacheFactoryTest extends TestCase {
       ],
       ['class' => '\stdClass'],
       $class,
-  ];
+    ];
 
     return $data;
   }

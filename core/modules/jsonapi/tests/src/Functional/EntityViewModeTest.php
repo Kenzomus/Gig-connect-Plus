@@ -9,15 +9,16 @@ use Drupal\Core\Url;
  * JSON:API integration test for the "EntityViewMode" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class EntityViewModeTest extends ResourceTestBase {
+class EntityViewModeTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    *
    * @todo: Remove 'field_ui' when https://www.drupal.org/node/2867266.
    */
-  public static $modules = ['user', 'field_ui'];
+  protected static $modules = ['user', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -55,6 +56,7 @@ class EntityViewModeTest extends ResourceTestBase {
     $entity_view_mode = EntityViewMode::create([
       'id' => 'user.test',
       'label' => 'Test',
+      'description' => '',
       'targetEntityType' => 'user',
     ]);
     $entity_view_mode->save();
@@ -93,6 +95,7 @@ class EntityViewModeTest extends ResourceTestBase {
           ],
           'label' => 'Test',
           'langcode' => 'en',
+          'description' => '',
           'status' => TRUE,
           'targetEntityType' => 'user',
           'drupal_internal__id' => 'user.test',
@@ -106,6 +109,7 @@ class EntityViewModeTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

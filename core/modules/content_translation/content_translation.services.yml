@@ -2,6 +2,7 @@ services:
   content_translation.synchronizer:
     class: Drupal\content_translation\FieldTranslationSynchronizer
     arguments: ['@entity_type.manager', '@plugin.manager.field.field_type']
+  Drupal\content_translation\FieldTranslationSynchronizerInterface: '@content_translation.synchronizer'
 
   content_translation.subscriber:
     class: Drupal\content_translation\Routing\ContentTranslationRouteSubscriber
@@ -30,8 +31,5 @@ services:
   content_translation.manager:
     class: Drupal\content_translation\ContentTranslationManager
     arguments: ['@entity_type.manager', '@entity_type.bundle.info']
-
-  content_translation.updates_manager:
-    class: Drupal\content_translation\ContentTranslationUpdatesManager
-    arguments: ['@entity_type.manager', '@entity.definition_update_manager', '@entity_field.manager', '@entity.last_installed_schema.repository']
-    deprecated: The "%service_id%" service is deprecated. Definitions are updated automatically now so no replacement is needed. See https://www.drupal.org/node/2973222.
+  Drupal\content_translation\ContentTranslationManagerInterface: '@content_translation.manager'
+  Drupal\content_translation\BundleTranslationSettingsInterface: '@content_translation.manager'

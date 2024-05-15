@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\FunctionalJavascriptTests;
 
 /**
@@ -10,13 +12,19 @@ namespace Drupal\FunctionalJavascriptTests;
  */
 class JavascriptDeprecationTest extends WebDriverTestBase {
 
-  public static $modules = ['js_deprecation_test'];
+  protected static $modules = ['js_deprecation_test'];
 
   /**
-   * @expectedDeprecation Javascript Deprecation: This function is deprecated for testing purposes.
-   * @expectedDeprecation Javascript Deprecation: This property is deprecated for testing purposes.
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * Tests Javascript deprecation notices.
    */
   public function testJavascriptDeprecation() {
+    $this->expectDeprecation('Javascript Deprecation: This function is deprecated for testing purposes.');
+    $this->expectDeprecation('Javascript Deprecation: This property is deprecated for testing purposes.');
     $this->drupalGet('js_deprecation_test');
     // Ensure that deprecation message from previous page loads will be
     // detected.

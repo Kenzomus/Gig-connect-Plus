@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\migrate_drupal\Unit;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -18,7 +20,6 @@ use org\bovigo\vfs\vfsStreamWrapper;
  * Defines a class for testing \Drupal\migrate_drupal\MigrationState.
  *
  * @group migrate_drupal
- * @group legacy
  *
  * @coversDefaultClass \Drupal\migrate_drupal\MigrationState
  */
@@ -49,7 +50,7 @@ class MigrationStateUnitTest extends UnitTestCase {
 
     foreach ($files as $module => $contents) {
       $path = $url . '/' . $module . '/migrations/state';
-      mkdir($path, '0755', TRUE);
+      mkdir($path, 0755, TRUE);
       file_put_contents($path . '/' . $module . '.migrate_drupal.yml', $contents);
     }
     $moduleHandler->getModuleDirectories()
@@ -258,11 +259,12 @@ PROFILE
           'search' => '',
           // Declared finished by one module but not finished by another.
           'user' => 'user',
+          // Enabled and not declared.
+          'rdf' => 'rdf',
+          'link' => 'link',
         ],
         MigrationState::FINISHED => [
-          'link' => 'link',
           'node' => 'node',
-          'rdf' => 'rdf',
         ],
       ],
       'expected_6' => [
@@ -279,12 +281,11 @@ PROFILE
           // No discovered or declared state.
           'search' => '',
           'color' => '',
+          'link' => 'link',
         ],
         MigrationState::FINISHED => [
           'node' => 'node',
           'content' => 'node',
-          // Update path not needed.
-          'link' => 'link',
         ],
       ],
     ];
@@ -397,7 +398,6 @@ MENU_UI
     // Test menu migration with menu_ui uninstalled.
     $tests[3] = $tests[1];
     unset($tests[3]['modules_to_enable']['menu_ui']);
-    unset($tests[3]['files']['menu_ui']);
     unset($tests[3]['migrations']['menu_ui']);
     $tests[3]['expected_7'] = [
       MigrationState::NOT_FINISHED => [

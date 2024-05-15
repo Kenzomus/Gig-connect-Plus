@@ -8,8 +8,9 @@ use Drupal\migrate\Audit\IdAuditor;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
-use Drupal\Tests\DeprecatedModulesTestTrait;
 use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
+
+// cspell:ignore sourceid
 
 /**
  * Tests the migration auditor for ID conflicts.
@@ -21,33 +22,36 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
   use FileSystemModuleDiscoveryDataProviderTrait;
   use CreateTestContentEntitiesTrait;
   use ContentModerationTestTrait;
-  use DeprecatedModulesTestTrait;
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     // Enable all modules.
     self::$modules = array_keys($this->coreModuleListDataProvider());
-    self::$modules = $this->removeDeprecatedModules(self::$modules);
     parent::setUp();
 
     // Install required entity schemas.
     $this->installEntitySchemas();
 
     // Install required schemas.
+    // @todo Remove book in https://www.drupal.org/project/drupal/issues/3376101
     $this->installSchema('book', ['book']);
     $this->installSchema('dblog', ['watchdog']);
+    // @todo Remove forum in https://www.drupal.org/project/drupal/issues/3261653
     $this->installSchema('forum', ['forum_index']);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('search', ['search_dataset']);
-    $this->installSchema('system', ['sequences']);
+    // @todo Remove tracker in https://www.drupal.org/project/drupal/issues/3261452
     $this->installSchema('tracker', ['tracker_node', 'tracker_user']);
 
     // Enable content moderation for nodes of type page.
     $this->installEntitySchema('content_moderation_state');
     $this->installConfig('content_moderation');
-    NodeType::create(['type' => 'page'])->save();
+    NodeType::create([
+      'type' => 'page',
+      'name' => 'Page',
+    ])->save();
     $workflow = $this->createEditorialWorkflow();
     $workflow->getTypePlugin()->addEntityTypeAndBundle('node', 'page');
     $workflow->save();
@@ -131,8 +135,6 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
     );
 
     $expected = [
-      'd6_aggregator_feed',
-      'd6_aggregator_item',
       'd6_comment',
       'd6_custom_block',
       'd6_file',

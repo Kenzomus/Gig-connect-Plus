@@ -7,7 +7,7 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Site\Settings;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\views\Views;
 
 /**
@@ -17,7 +17,7 @@ use Drupal\views\Views;
  */
 class SelectionTest extends BrowserTestBase {
 
-  use EntityReferenceTestTrait;
+  use EntityReferenceFieldCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -51,7 +51,7 @@ class SelectionTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create content types and nodes.
@@ -118,7 +118,7 @@ class SelectionTest extends BrowserTestBase {
         'label' => '<span class="views-field views-field-type"><span class="field-content">' . $this->nodes[3]->bundle() . '</span></span>: <span class="views-field views-field-title"><span class="field-content">' . Html::escape($this->nodes[3]->label()) . '</span></span>',
       ],
     ];
-    $this->assertEqual($result, $expected, 'The autocomplete result of the Views entity reference selection handler contains the proper output.');
+    $this->assertEquals($expected, $result, 'The autocomplete result of the Views entity reference selection handler contains the proper output.');
   }
 
 }

@@ -1,9 +1,6 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Authentication\AuthenticationManagerTest.
- */
+declare(strict_types=1);
 
 namespace Drupal\Tests\Core\Authentication;
 
@@ -12,7 +9,7 @@ use Drupal\Core\Authentication\AuthenticationManager;
 use Drupal\Core\Authentication\AuthenticationProviderFilterInterface;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Tests\UnitTestCase;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
@@ -49,7 +46,7 @@ class AuthenticationManagerTest extends UnitTestCase {
   /**
    * @covers ::applyFilter
    */
-  public function testApplyFilterWithFilterprovider() {
+  public function testApplyFilterWithFilterProvider() {
     $auth_provider = $this->createMock('Drupal\Tests\Core\Authentication\TestAuthenticationProviderInterface');
     $auth_provider->expects($this->once())
       ->method('appliesToRoutedRequest')

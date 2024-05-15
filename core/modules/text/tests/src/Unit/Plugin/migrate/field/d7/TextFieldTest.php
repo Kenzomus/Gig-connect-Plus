@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\text\Unit\Plugin\migrate\field\d7;
 
 use Drupal\migrate\Row;
@@ -20,17 +22,20 @@ class TextFieldTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
+    parent::setUp();
+
     $this->plugin = new TextField([], 'text', []);
   }
 
   /**
-   * Data provider for getFieldFormatterType().
+   * Data provider for testGetFieldFormatterType().
    */
   public function getFieldFormatterTypeProvider() {
     return [
       ['text', 'text_plain', 'string'],
       ['text_long', 'text_default', 'basic_string'],
+      ['text_long', 'text_plain', 'basic_string'],
     ];
   }
 
@@ -39,7 +44,7 @@ class TextFieldTest extends UnitTestCase {
    * @covers ::getFieldType
    * @dataProvider getFieldFormatterTypeProvider
    */
-  public function testGetFieldType($type, $formatter_type, $expected) {
+  public function testGetFieldFormatterType($type, $formatter_type, $expected) {
     $row = new Row();
     $row->setSourceProperty('type', $type);
     $row->setSourceProperty('formatter/type', $formatter_type);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\Utility;
 
 use Drupal\Component\Utility\Crypt;
@@ -13,17 +15,6 @@ use PHPUnit\Framework\TestCase;
  * @coversDefaultClass \Drupal\Component\Utility\Crypt
  */
 class CryptTest extends TestCase {
-
-  /**
-   * Tests random byte generation.
-   *
-   * @covers ::randomBytes
-   * @expectedDeprecation Drupal\Component\Utility\Crypt::randomBytes() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Use PHP's built-in random_bytes() function instead. See https://www.drupal.org/node/3057191
-   * @group legacy
-   */
-  public function testRandomBytes() {
-    $this->assertSame(16, strlen(Crypt::randomBytes(16)));
-  }
 
   /**
    * Tests hash generation.
@@ -84,10 +75,12 @@ class CryptTest extends TestCase {
     return [
       [
         'data' => 'The SHA (Secure Hash Algorithm) is one of a number of cryptographic hash functions. A cryptographic hash is like a signature for a text or a data file. SHA-256 algorithm generates an almost-unique, fixed size 256-bit (32-byte) hash. Hash is a one way function – it cannot be decrypted back. This makes it suitable for password validation, challenge hash authentication, anti-tamper, digital signatures.',
+        // cspell:disable-next-line
         'expectedHash' => '034rT6smZAVRxpq8O98cFFNLIVx_Ph1EwLZQKcmRR_s',
       ],
       [
         'data' => 'SHA-256 is one of the successor hash functions to SHA-1, and is one of the strongest hash functions available.',
+        // cspell:disable-next-line
         'expected_hash' => 'yuqkDDYqprL71k4xIb6K6D7n76xldO4jseRhEkEE6SI',
       ],
     ];
@@ -103,6 +96,7 @@ class CryptTest extends TestCase {
       [
         'data' => 'Calculates a base-64 encoded, URL-safe sha-256 hmac.',
         'key' => 'secret-key',
+        // cspell:disable-next-line
         'expected_hmac' => '2AaH63zwjhekWZlEpAiufyfhAHIzbQhl9Hd9oCi3_c8',
       ],
     ];
@@ -141,19 +135,6 @@ class CryptTest extends TestCase {
       [0, NULL],
       ['string', NULL],
     ];
-  }
-
-  /**
-   * Legacy test of Drupal\Component\Utility\Crypt::hashEquals() method.
-   *
-   * @expectedDeprecation Drupal\Component\Utility\Crypt::hashEquals() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use PHP's built-in hash_equals() function instead. See https://www.drupal.org/node/3054488
-   * @group legacy
-   */
-  public function testHashEquals() {
-    $a_hash = Crypt::hashBase64('a');
-    $b_hash = Crypt::hashBase64('b');
-    $this->assertTrue(Crypt::hashEquals($a_hash, $a_hash));
-    $this->assertFalse(Crypt::hashEquals($a_hash, $b_hash));
   }
 
 }

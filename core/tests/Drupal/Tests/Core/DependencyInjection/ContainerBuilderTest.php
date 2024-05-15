@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\DependencyInjection;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -25,27 +27,6 @@ class ContainerBuilderTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::set
-   */
-  public function testSet() {
-    $container = new ContainerBuilder();
-    $class = new BarClass();
-    $container->set('bar', $class);
-    $this->assertEquals('bar', $class->_serviceId);
-  }
-
-  /**
-   * @covers ::set
-   */
-  public function testSetException() {
-    $container = new ContainerBuilder();
-    $class = new BarClass();
-    $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('Service ID names must be lowercase: Bar');
-    $container->set('Bar', $class);
-  }
-
-  /**
    * @covers ::setParameter
    */
   public function testSetParameterException() {
@@ -53,16 +34,6 @@ class ContainerBuilderTest extends UnitTestCase {
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessage('Parameter names must be lowercase: Buzz');
     $container->setParameter('Buzz', 'buzz');
-  }
-
-  /**
-   * @covers ::register
-   */
-  public function testRegisterException() {
-    $container = new ContainerBuilder();
-    $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('Service ID names must be lowercase: Bar');
-    $container->register('Bar');
   }
 
   /**
@@ -78,28 +49,18 @@ class ContainerBuilderTest extends UnitTestCase {
    * @covers ::setDefinition
    */
   public function testSetDefinition() {
-    // Test a service with defaults.
+    // Test a service with public set to true.
     $container = new ContainerBuilder();
     $definition = new Definition();
+    $definition->setPublic(TRUE);
     $service = $container->setDefinition('foo', $definition);
     $this->assertTrue($service->isPublic());
-    $this->assertFalse($service->isPrivate());
 
     // Test a service with public set to false.
     $definition = new Definition();
     $definition->setPublic(FALSE);
     $service = $container->setDefinition('foo', $definition);
     $this->assertFalse($service->isPublic());
-    $this->assertFalse($service->isPrivate());
-
-    // Test a service with private set to true. Drupal does not support this.
-    // We only support using setPublic() to make things not available outside
-    // the container.
-    $definition = new Definition();
-    $definition->setPrivate(TRUE);
-    $service = $container->setDefinition('foo', $definition);
-    $this->assertTrue($service->isPublic());
-    $this->assertFalse($service->isPrivate());
   }
 
   /**

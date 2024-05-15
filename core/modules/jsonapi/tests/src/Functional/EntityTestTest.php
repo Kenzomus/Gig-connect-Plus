@@ -6,7 +6,6 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
-use Drupal\Tests\rest\Functional\BcTimestampNormalizerUnixTestTrait;
 use Drupal\user\Entity\User;
 
 /**
@@ -16,12 +15,10 @@ use Drupal\user\Entity\User;
  */
 class EntityTestTest extends ResourceTestBase {
 
-  use BcTimestampNormalizerUnixTestTrait;
-
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test'];
+  protected static $modules = ['entity_test'];
 
   /**
    * {@inheritdoc}
@@ -123,7 +120,7 @@ class EntityTestTest extends ResourceTestBase {
           'self' => ['href' => $self_url],
         ],
         'attributes' => [
-          'created' => (new \DateTime())->setTimestamp($this->entity->get('created')->value)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'created' => (new \DateTime())->setTimestamp((int) $this->entity->get('created')->value)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'field_test_text' => NULL,
           'langcode' => 'en',
           'name' => 'Llama',
@@ -134,6 +131,9 @@ class EntityTestTest extends ResourceTestBase {
           'user_id' => [
             'data' => [
               'id' => $author->uuid(),
+              'meta' => [
+                'drupal_internal__target_id' => (int) $author->id(),
+              ],
               'type' => 'user--user',
             ],
             'links' => [
@@ -154,7 +154,7 @@ class EntityTestTest extends ResourceTestBase {
       'data' => [
         'type' => 'entity_test--entity_test',
         'attributes' => [
-          'name' => 'Dramallama',
+          'name' => 'Drama llama',
         ],
       ],
     ];

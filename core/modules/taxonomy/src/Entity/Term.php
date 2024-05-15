@@ -40,7 +40,6 @@ use Drupal\user\StatusItem;
  *   data_table = "taxonomy_term_field_data",
  *   revision_table = "taxonomy_term_revision",
  *   revision_data_table = "taxonomy_term_field_revision",
- *   uri_callback = "taxonomy_term_uri",
  *   translatable = TRUE,
  *   entity_keys = {
  *     "id" = "tid",
@@ -66,6 +65,7 @@ use Drupal\user\StatusItem;
  *     "create" = "/taxonomy/term",
  *   },
  *   permission_granularity = "bundle",
+ *   collection_permission = "access taxonomy overview",
  *   constraints = {
  *     "TaxonomyHierarchy" = {}
  *   }
@@ -253,7 +253,7 @@ class Term extends EditorialContentEntityBase implements TermInterface {
    * {@inheritdoc}
    */
   public function getName() {
-    return $this->label();
+    return $this->label() ?? '';
   }
 
   /**
@@ -268,7 +268,7 @@ class Term extends EditorialContentEntityBase implements TermInterface {
    * {@inheritdoc}
    */
   public function getWeight() {
-    return $this->get('weight')->value;
+    return (int) $this->get('weight')->value;
   }
 
   /**
@@ -277,14 +277,6 @@ class Term extends EditorialContentEntityBase implements TermInterface {
   public function setWeight($weight) {
     $this->set('weight', $weight);
     return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getVocabularyId() {
-    @trigger_error('The ' . __METHOD__ . ' method is deprecated since version 8.4.0 and will be removed before 9.0.0. Use ' . __CLASS__ . '::bundle() instead to get the vocabulary ID.', E_USER_DEPRECATED);
-    return $this->bundle();
   }
 
 }

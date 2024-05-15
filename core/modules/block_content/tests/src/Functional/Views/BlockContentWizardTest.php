@@ -14,7 +14,7 @@ class BlockContentWizardTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['block_content', 'views_ui'];
+  protected static $modules = ['block_content', 'views_ui'];
 
   /**
    * {@inheritdoc}
@@ -24,10 +24,9 @@ class BlockContentWizardTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer views']));
-    $this->createBlockContentType('Basic block');
   }
 
   /**
@@ -36,11 +35,12 @@ class BlockContentWizardTest extends BlockContentTestBase {
   public function testViewAddBlockContent() {
     $view = [];
     $view['label'] = $this->randomMachineName(16);
-    $view['id'] = strtolower($this->randomMachineName(16));
+    $view['id'] = $this->randomMachineName(16);
     $view['description'] = $this->randomMachineName(16);
     $view['page[create]'] = FALSE;
     $view['show[wizard_key]'] = 'block_content';
-    $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Save and edit');
 
     $view_storage_controller = $this->container->get('entity_type.manager')->getStorage('view');
     /** @var \Drupal\views\Entity\View $view */

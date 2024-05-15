@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *   }
  * )
  */
-class DBLogResource extends ResourceBase {
+class DbLogResource extends ResourceBase {
 
   /**
    * Responds to GET requests.
@@ -39,7 +39,7 @@ class DBLogResource extends ResourceBase {
    */
   public function get($id = NULL) {
     if ($id) {
-      $record = Database::getConnection()->query("SELECT * FROM {watchdog} WHERE wid = :wid", [':wid' => $id])
+      $record = Database::getConnection()->query("SELECT * FROM {watchdog} WHERE [wid] = :wid", [':wid' => $id])
         ->fetchAssoc();
       if (!empty($record)) {
         return new ResourceResponse($record);

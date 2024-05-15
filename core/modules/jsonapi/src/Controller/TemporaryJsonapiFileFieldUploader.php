@@ -2,31 +2,29 @@
 
 namespace Drupal\jsonapi\Controller;
 
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\File\Exception\FileException;
-use Drupal\Core\Validation\DrupalTranslator;
-use Drupal\file\FileInterface;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\File\Event\FileUploadSanitizeNameEvent;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Utility\Token;
-use Drupal\Component\Render\PlainTextOutput;
-use Drupal\Core\Entity\EntityConstraintViolationList;
 use Drupal\file\Entity\File;
+use Drupal\file\FileInterface;
 use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
+use Drupal\file\Validation\FileValidatorInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Reads data from an upload stream and creates a corresponding file entity.
@@ -74,7 +72,7 @@ class TemporaryJsonapiFileFieldUploader {
   /**
    * The MIME type guesser.
    *
-   * @var \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface
+   * @var \Symfony\Component\Mime\MimeTypeGuesserInterface
    */
   protected $mimeTypeGuesser;
 
@@ -100,13 +98,27 @@ class TemporaryJsonapiFileFieldUploader {
   protected $systemFileConfig;
 
   /**
+   * The event dispatcher.
+   *
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
+
+  /**
+   * The file validator.
+   *
+   * @var \Drupal\file\Validation\FileValidatorInterface
+   */
+  protected FileValidatorInterface $fileValidator;
+
+  /**
    * Constructs a FileUploadResource instance.
    *
    * @param \Psr\Log\LoggerInterface $logger
    *   A logger instance.
    * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   The file system service.
-   * @param \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface $mime_type_guesser
+   * @param \Symfony\Component\Mime\MimeTypeGuesserInterface $mime_type_guesser
    *   The MIME type guesser.
    * @param \Drupal\Core\Utility\Token $token
    *   The token replacement instance.
@@ -114,14 +126,27 @@ class TemporaryJsonapiFileFieldUploader {
    *   The lock service.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   (optional) The event dispatcher.
+   * @param \Drupal\file\Validation\FileValidatorInterface|null $file_validator
+   *   The file validator.
    */
-  public function __construct(LoggerInterface $logger, FileSystemInterface $file_system, MimeTypeGuesserInterface $mime_type_guesser, Token $token, LockBackendInterface $lock, ConfigFactoryInterface $config_factory) {
+  public function __construct(LoggerInterface $logger, FileSystemInterface $file_system, $mime_type_guesser, Token $token, LockBackendInterface $lock, ConfigFactoryInterface $config_factory, EventDispatcherInterface $event_dispatcher = NULL, FileValidatorInterface $file_validator = NULL) {
     $this->logger = $logger;
     $this->fileSystem = $file_system;
     $this->mimeTypeGuesser = $mime_type_guesser;
     $this->token = $token;
     $this->lock = $lock;
     $this->systemFileConfig = $config_factory->get('system.file');
+    if (!$event_dispatcher) {
+      $event_dispatcher = \Drupal::service('event_dispatcher');
+    }
+    $this->eventDispatcher = $event_dispatcher;
+    if (!$file_validator) {
+      @trigger_error('Calling ' . __METHOD__ . '() without the $file_validator argument is deprecated in drupal:10.2.0 and is required in drupal:11.0.0. See https://www.drupal.org/node/3363700', E_USER_DEPRECATED);
+      $file_validator = \Drupal::service('file.validator');
+    }
+    $this->fileValidator = $file_validator;
   }
 
   /**
@@ -145,7 +170,8 @@ class TemporaryJsonapiFileFieldUploader {
    */
   public function handleFileUploadForField(FieldDefinitionInterface $field_definition, $filename, AccountInterface $owner) {
     assert(is_a($field_definition->getClass(), FileFieldItemList::class, TRUE));
-    $destination = $this->getUploadLocation($field_definition->getSettings());
+    $settings = $field_definition->getSettings();
+    $destination = $this->getUploadLocation($settings);
 
     // Check the destination file path is writable.
     if (!$this->fileSystem->prepareDirectory($destination, FileSystemInterface::CREATE_DIRECTORY)) {
@@ -158,6 +184,9 @@ class TemporaryJsonapiFileFieldUploader {
 
     // Create the file.
     $file_uri = "{$destination}/{$prepared_filename}";
+    if ($destination === $settings['uri_scheme'] . '://') {
+      $file_uri = "{$destination}{$prepared_filename}";
+    }
 
     $temp_file_path = $this->streamUploadData();
 
@@ -167,14 +196,14 @@ class TemporaryJsonapiFileFieldUploader {
     $lock_id = $this->generateLockIdFromFileUri($file_uri);
 
     if (!$this->lock->acquire($lock_id)) {
-      throw new HttpException(503, sprintf('File "%s" is already locked for writing.'), NULL, ['Retry-After' => 1]);
+      throw new HttpException(503, sprintf('File "%s" is already locked for writing.', $file_uri), NULL, ['Retry-After' => 1]);
     }
 
     // Begin building file entity.
     $file = File::create([]);
     $file->setOwnerId($owner->id());
     $file->setFilename($prepared_filename);
-    $file->setMimeType($this->mimeTypeGuesser->guess($prepared_filename));
+    $file->setMimeType($this->mimeTypeGuesser->guessMimeType($prepared_filename));
     $file->setFileUri($temp_file_path);
     // Set the size. This is done in File::preSave() but we validate the file
     // before it is saved.
@@ -182,26 +211,13 @@ class TemporaryJsonapiFileFieldUploader {
 
     // Validate the file against field-level validators first while the file is
     // still a temporary file. Validation is split up in 2 steps to be the same
-    // as in _file_save_upload_single().
+    // as in \Drupal\file\Upload\FileUploadHandler::handleFileUpload().
     // For backwards compatibility this part is copied from ::validate() to
     // leave that method behavior unchanged.
     // @todo Improve this with a file uploader service in
     //   https://www.drupal.org/project/drupal/issues/2940383
-    $errors = file_validate($file, $validators);
-    if (!empty($errors)) {
-      $violations = new EntityConstraintViolationList($file);
-      $translator = new DrupalTranslator();
-      $entity = EntityAdapter::createFromEntity($file);
-      foreach ($errors as $error) {
-        $violation = new ConstraintViolation($translator->trans($error),
-          $error,
-          [],
-          $entity,
-          '',
-          NULL
-        );
-        $violations->add($violation);
-      }
+    $violations = $this->fileValidator->validate($file, $validators);
+    if (count($violations) > 0) {
       return $violations;
     }
 
@@ -285,13 +301,17 @@ class TemporaryJsonapiFileFieldUploader {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   (optional) The entity to which the file is to be uploaded, if it exists.
    *   If the entity does not exist and it is not given, create access to the
-   *   file will be checked.
+   *   entity the file is attached to will be checked.
    *
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The file upload access result.
    */
   public static function checkFileUploadAccess(AccountInterface $account, FieldDefinitionInterface $field_definition, EntityInterface $entity = NULL) {
-    assert(is_null($entity) || $field_definition->getTargetEntityTypeId() === $entity->getEntityTypeId() && $field_definition->getTargetBundle() === $entity->bundle());
+    assert(is_null($entity) ||
+      $field_definition->getTargetEntityTypeId() === $entity->getEntityTypeId() &&
+      // Base fields do not have target bundles.
+      (is_null($field_definition->getTargetBundle()) || $field_definition->getTargetBundle() === $entity->bundle())
+    );
     $entity_type_manager = \Drupal::entityTypeManager();
     $entity_access_control_handler = $entity_type_manager->getAccessControlHandler($field_definition->getTargetEntityTypeId());
     $bundle = $entity_type_manager->getDefinition($field_definition->getTargetEntityTypeId())->hasKey('bundle') ? $field_definition->getTargetBundle() : NULL;
@@ -372,7 +392,7 @@ class TemporaryJsonapiFileFieldUploader {
    * @param \Drupal\file\FileInterface $file
    *   The file entity to validate.
    * @param array $validators
-   *   An array of upload validators to pass to file_validate().
+   *   An array of upload validators to pass to FileValidator.
    *
    * @return \Drupal\Core\Entity\EntityConstraintViolationListInterface
    *   The list of constraint violations, if any.
@@ -385,20 +405,7 @@ class TemporaryJsonapiFileFieldUploader {
     $violations->filterByFieldAccess();
 
     // Validate the file based on the field definition configuration.
-    $errors = file_validate($file, $validators);
-    if (!empty($errors)) {
-      $translator = new DrupalTranslator();
-      foreach ($errors as $error) {
-        $violation = new ConstraintViolation($translator->trans($error),
-          $error,
-          [],
-          EntityAdapter::createFromEntity($file),
-          '',
-          NULL
-        );
-        $violations->add($violation);
-      }
-    }
+    $violations->addAll($this->fileValidator->validate($file, $validators));
 
     return $violations;
   }
@@ -415,46 +422,12 @@ class TemporaryJsonapiFileFieldUploader {
    *   The prepared/munged filename.
    */
   protected function prepareFilename($filename, array &$validators) {
-    //  Don't rename if 'allow_insecure_uploads' evaluates to TRUE.
-    if (!$this->systemFileConfig->get('allow_insecure_uploads')) {
-      if (!empty($validators['file_validate_extensions'][0])) {
-        // If there is a file_validate_extensions validator and a list of
-        // valid extensions, munge the filename to protect against possible
-        // malicious extension hiding within an unknown file type. For example,
-        // "filename.html.foo".
-        $filename = file_munge_filename($filename, $validators['file_validate_extensions'][0]);
-      }
-
-      // Rename potentially executable files, to help prevent exploits (i.e.
-      // will rename filename.php.foo and filename.php to filename._php._foo.txt
-      // and filename._php.txt, respectively).
-      if (preg_match(FILE_INSECURE_EXTENSION_REGEX, $filename)) {
-        // If the file will be rejected anyway due to a disallowed extension, it
-        // should not be renamed; rather, we'll let file_validate_extensions()
-        // reject it below.
-        $passes_validation = FALSE;
-        if (!empty($validators['file_validate_extensions'][0])) {
-          $file = File::create([]);
-          $file->setFilename($filename);
-          $passes_validation = empty(file_validate_extensions($file, $validators['file_validate_extensions'][0]));
-        }
-        if (empty($validators['file_validate_extensions'][0]) || $passes_validation) {
-          if (substr($filename, -4) != '.txt') {
-            // The destination filename will also later be used to create the URI.
-            $filename .= '.txt';
-          }
-          $filename = file_munge_filename($filename, $validators['file_validate_extensions'][0] ?? '');
-
-          // The .txt extension may not be in the allowed list of extensions. We
-          // have to add it here or else the file upload will fail.
-          if (!empty($validators['file_validate_extensions'][0])) {
-            $validators['file_validate_extensions'][0] .= ' txt';
-          }
-        }
-      }
-    }
-
-    return $filename;
+    // The actual extension validation occurs in
+    // \Drupal\jsonapi\Controller\TemporaryJsonapiFileFieldUploader::validate().
+    $extensions = $validators['FileExtension']['extensions'] ?? '';
+    $event = new FileUploadSanitizeNameEvent($filename, $extensions);
+    $this->eventDispatcher->dispatch($event);
+    return $event->getFilename();
   }
 
   /**
@@ -492,22 +465,24 @@ class TemporaryJsonapiFileFieldUploader {
   protected function getUploadValidators(FieldDefinitionInterface $field_definition) {
     $validators = [
       // Add in our check of the file name length.
-      'file_validate_name_length' => [],
+      'FileNameLength' => [],
     ];
     $settings = $field_definition->getSettings();
 
     // Cap the upload size according to the PHP limit.
-    $max_filesize = Bytes::toInt(Environment::getUploadMaxSize());
+    $max_filesize = Bytes::toNumber(Environment::getUploadMaxSize());
     if (!empty($settings['max_filesize'])) {
-      $max_filesize = min($max_filesize, Bytes::toInt($settings['max_filesize']));
+      $max_filesize = min($max_filesize, Bytes::toNumber($settings['max_filesize']));
     }
 
     // There is always a file size limit due to the PHP server limit.
-    $validators['file_validate_size'] = [$max_filesize];
+    $validators['FileSizeLimit'] = ['fileLimit' => $max_filesize];
 
     // Add the extension check if necessary.
     if (!empty($settings['file_extensions'])) {
-      $validators['file_validate_extensions'] = [$settings['file_extensions']];
+      $validators['FileExtension'] = [
+        'extensions' => $settings['file_extensions'],
+      ];
     }
 
     return $validators;

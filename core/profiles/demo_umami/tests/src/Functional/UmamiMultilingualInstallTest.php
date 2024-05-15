@@ -26,6 +26,7 @@ class UmamiMultilingualInstallTest extends InstallerTestBase {
    */
   public function testUmami() {
     $this->drupalGet('');
+    // cSpell:disable-next-line
     $this->assertSession()->pageTextContains('Quiche mediterráneo profundo');
   }
 
@@ -51,7 +52,7 @@ class UmamiMultilingualInstallTest extends InstallerTestBase {
    *   Contents for the test .po file.
    */
   protected function getPo($langcode) {
-    return <<<ENDPO
+    return <<<PO
 msgid ""
 msgstr ""
 
@@ -67,7 +68,7 @@ msgstr "Language $langcode"
 #: Testing site name configuration during the installer.
 msgid "Drupal"
 msgstr "Drupal"
-ENDPO;
+PO;
   }
 
 }

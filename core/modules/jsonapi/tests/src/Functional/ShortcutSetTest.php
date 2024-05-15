@@ -9,13 +9,14 @@ use Drupal\shortcut\Entity\ShortcutSet;
  * JSON:API integration test for the "ShortcutSet" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class ShortcutSetTest extends ResourceTestBase {
+class ShortcutSetTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['shortcut'];
+  protected static $modules = ['shortcut'];
 
   /**
    * {@inheritdoc}
@@ -77,7 +78,7 @@ class ShortcutSetTest extends ResourceTestBase {
    */
   protected function createEntity() {
     $set = ShortcutSet::create([
-      'id' => 'llama_set',
+      'id' => 'llama-set',
       'label' => 'Llama Set',
     ]);
     $set->save();
@@ -112,7 +113,7 @@ class ShortcutSetTest extends ResourceTestBase {
           'status' => TRUE,
           'langcode' => 'en',
           'dependencies' => [],
-          'drupal_internal__id' => 'llama_set',
+          'drupal_internal__id' => 'llama-set',
         ],
       ],
     ];
@@ -123,6 +124,7 @@ class ShortcutSetTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

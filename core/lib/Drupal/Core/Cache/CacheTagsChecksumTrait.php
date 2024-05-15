@@ -48,7 +48,7 @@ trait CacheTagsChecksumTrait {
   }
 
   /**
-   * Implements \Drupal\Core\Cache\CacheTagsChecksumInterface::invalidateTags()
+   * Implements \Drupal\Core\Cache\CacheTagsInvalidatorInterface::invalidateTags()
    */
   public function invalidateTags(array $tags) {
     // Only invalidate tags once per request unless they are written again.
@@ -68,7 +68,14 @@ trait CacheTagsChecksumTrait {
     $in_transaction = $this->getDatabaseConnection()->inTransaction();
     if ($in_transaction) {
       if (empty($this->delayedTags)) {
-        $this->getDatabaseConnection()->addRootTransactionEndCallback([$this, 'rootTransactionEndCallback']);
+        // @todo in drupal:11.0.0, remove the conditional and only call the
+        //   TransactionManager().
+        if ($this->getDatabaseConnection()->transactionManager()) {
+          $this->getDatabaseConnection()->transactionManager()->addPostTransactionCallback([$this, 'rootTransactionEndCallback']);
+        }
+        else {
+          $this->getDatabaseConnection()->addRootTransactionEndCallback([$this, 'rootTransactionEndCallback']);
+        }
       }
       $this->delayedTags = Cache::mergeTags($this->delayedTags, $tags);
     }
@@ -159,6 +166,10 @@ trait CacheTagsChecksumTrait {
    *
    * @return int[]
    *   List of invalidation counts keyed by the respective cache tag.
+   *
+   * @throws \Exception
+   *   Thrown if the table could not be created or the database connection
+   *   failed.
    */
   abstract protected function getTagInvalidationCounts(array $tags);
 
@@ -175,6 +186,10 @@ trait CacheTagsChecksumTrait {
    *
    * @param string[] $tags
    *   The set of tags for which to invalidate cache items.
+   *
+   * @throws \Exception
+   *   Thrown if the table could not be created or the database connection
+   *   failed.
    */
   abstract protected function doInvalidateTags(array $tags);
 

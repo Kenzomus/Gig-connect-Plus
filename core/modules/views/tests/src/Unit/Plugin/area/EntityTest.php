@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\views\Unit\Plugin\area;
 
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
@@ -81,7 +83,7 @@ class EntityTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
@@ -123,7 +125,7 @@ class EntityTest extends UnitTestCase {
   }
 
   /**
-   * Ensures that the entity manager returns an entity storage.
+   * Ensures that the entity type manager returns an entity storage.
    */
   protected function setupEntityTypeManager() {
     $this->entityTypeManager->expects($this->any())

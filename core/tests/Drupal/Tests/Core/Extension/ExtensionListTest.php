@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Extension;
 
 use Drupal\Component\Serialization\Yaml;
@@ -25,7 +27,7 @@ class ExtensionListTest extends UnitTestCase {
    * @covers ::getName
    */
   public function testGetNameWithNonExistingExtension() {
-    list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
+    [$cache, $info_parser, $module_handler, $state] = $this->getMocks();
     $test_extension_list = new TestExtension($this->randomMachineName(), 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
 
     $extension_discovery = $this->prophesize(ExtensionDiscovery::class);
@@ -49,7 +51,7 @@ class ExtensionListTest extends UnitTestCase {
    * @covers ::get
    */
   public function testGetWithNonExistingExtension() {
-    list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
+    [$cache, $info_parser, $module_handler, $state] = $this->getMocks();
     $test_extension_list = new TestExtension($this->randomMachineName(), 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
 
     $extension_discovery = $this->prophesize(ExtensionDiscovery::class);
@@ -292,7 +294,7 @@ class ExtensionListTest extends UnitTestCase {
       touch("vfs://drupal_root/example/$extension_name/$extension_name.info.yml", 123456789);
     }
 
-    list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
+    [$cache, $info_parser, $module_handler, $state] = $this->getMocks();
     $info_parser->parse(Argument::any())->will(function ($args) {
       return Yaml::decode(file_get_contents('vfs://drupal_root/' . $args[0]));
     });
@@ -333,6 +335,7 @@ class TestExtension extends ExtensionList {
 
   /**
    * @param \Drupal\Core\Extension\ExtensionDiscovery $extension_discovery
+   *   The extension discovery class.
    */
   public function setExtensionDiscovery(ExtensionDiscovery $extension_discovery) {
     $this->extensionDiscovery = $extension_discovery;

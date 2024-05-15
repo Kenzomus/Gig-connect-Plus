@@ -22,6 +22,7 @@ use Prophecy\Argument;
  * @coversDefaultClass \Drupal\layout_builder\LayoutEntityHelperTrait
  *
  * @group layout_builder
+ * @group #slow
  */
 class LayoutEntityHelperTraitTest extends KernelTestBase {
 
@@ -38,16 +39,15 @@ class LayoutEntityHelperTraitTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
-    $this->installSchema('system', ['key_value_expire']);
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');
   }
 
   /**
-   * Dataprovider for testGetSectionStorageForEntity().
+   * Data provider for testGetSectionStorageForEntity().
    */
   public function providerTestGetSectionStorageForEntity() {
     $data = [];
@@ -120,7 +120,7 @@ class LayoutEntityHelperTraitTest extends KernelTestBase {
   }
 
   /**
-   * Dataprovider for testOriginalEntityUsesDefaultStorage().
+   * Data provider for testOriginalEntityUsesDefaultStorage().
    */
   public function providerTestOriginalEntityUsesDefaultStorage() {
     return [

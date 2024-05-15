@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Batch;
 
 use Drupal\Core\Batch\BatchBuilder;
@@ -172,7 +174,7 @@ class BatchBuilderTest extends UnitTestCase {
       ->setQueue('BatchName', '\Drupal\Core\Queue\Batch')
       ->toArray();
 
-    $this->assertArrayEquals([
+    $this->assertEquals([
       'name' => 'BatchName',
       'class' => '\Drupal\Core\Queue\Batch',
     ], $batch['queue'], 'Batch queue has been set.');

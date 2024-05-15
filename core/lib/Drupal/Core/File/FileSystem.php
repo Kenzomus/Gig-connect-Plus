@@ -114,7 +114,7 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function unlink($uri, $context = NULL) {
-    if (!$this->streamWrapperManager->isValidUri($uri) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+    if (!$this->streamWrapperManager->isValidUri($uri) && str_starts_with(PHP_OS, 'WIN')) {
       chmod($uri, 0600);
     }
     if ($context) {
@@ -214,7 +214,10 @@ class FileSystem implements FileSystemInterface {
         $recursive_path .= $component;
 
         if (!file_exists($recursive_path)) {
-          if (!$this->mkdirCall($recursive_path, $mode, FALSE, $context)) {
+          $success = $this->mkdirCall($recursive_path, $mode, FALSE, $context);
+          // If the operation failed, check again if the directory was created
+          // by another process/server, only report a failure if not.
+          if (!$success && !file_exists($recursive_path)) {
             return FALSE;
           }
           // Not necessary to use self::chmod() as there is no scheme.
@@ -237,8 +240,7 @@ class FileSystem implements FileSystemInterface {
   }
 
   /**
-   * Helper function. Ensures we don't pass a NULL as a context resource to
-   * mkdir().
+   * Ensures we don't pass a NULL as a context resource to mkdir().
    *
    * @see self::mkdir()
    */
@@ -255,7 +257,7 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function rmdir($uri, $context = NULL) {
-    if (!$this->streamWrapperManager->isValidUri($uri) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+    if (!$this->streamWrapperManager->isValidUri($uri) && str_starts_with(PHP_OS, 'WIN')) {
       chmod($uri, 0700);
     }
     if ($context) {
@@ -286,22 +288,6 @@ class FileSystem implements FileSystemInterface {
       // Handle as a normal tempnam() call.
       return tempnam($directory, $prefix);
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function uriScheme($uri) {
-    @trigger_error('FileSystem::uriScheme() is deprecated in drupal:8.8.0. It will be removed from drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
-    return StreamWrapperManager::getScheme($uri);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validScheme($scheme) {
-    @trigger_error('FileSystem::validScheme() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
-    return $this->streamWrapperManager->isValidScheme($scheme);
   }
 
   /**
@@ -368,6 +354,10 @@ class FileSystem implements FileSystemInterface {
       call_user_func($callback, $path);
     }
 
+    if (!file_exists($path)) {
+      return TRUE;
+    }
+
     if (is_dir($path)) {
       $dir = dir($path);
       while (($entry = $dir->read()) !== FALSE) {
@@ -393,7 +383,7 @@ class FileSystem implements FileSystemInterface {
 
     // Ensure compatibility with Windows.
     // @see \Drupal\Core\File\FileSystemInterface::unlink().
-    if (!$this->streamWrapperManager->isValidUri($source) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+    if (!$this->streamWrapperManager->isValidUri($source) && str_starts_with(PHP_OS, 'WIN')) {
       chmod($source, 0600);
     }
     // Attempt to resolve the URIs. This is necessary in certain
@@ -482,10 +472,11 @@ class FileSystem implements FileSystemInterface {
       // Perhaps $destination is a dir/file?
       $dirname = $this->dirname($destination);
       if (!$this->prepareDirectory($dirname)) {
-        $this->logger->error("The specified file '%original_source' could not be copied because the destination directory is not properly configured. This may be caused by a problem with file or directory permissions.", [
+        $this->logger->error("The specified file '%original_source' could not be copied because the destination directory '%destination_directory' is not properly configured. This may be caused by a problem with file or directory permissions.", [
           '%original_source' => $original_source,
+          '%destination_directory' => $dirname,
         ]);
-        throw new DirectoryNotReadyException("The specified file '$original_source' could not be copied because the destination directory is not properly configured. This may be caused by a problem with file or directory permissions.");
+        throw new DirectoryNotReadyException("The specified file '$original_source' could not be copied because the destination directory '$dirname' is not properly configured. This may be caused by a problem with file or directory permissions.");
       }
     }
 
@@ -599,7 +590,7 @@ class FileSystem implements FileSystemInterface {
     if (preg_last_error() !== PREG_NO_ERROR) {
       throw new FileException(sprintf("Invalid filename '%s'", $original));
     }
-    if (substr(PHP_OS, 0, 3) == 'WIN') {
+    if (str_starts_with(PHP_OS, 'WIN')) {
       // These characters are not allowed in Windows filenames.
       $basename = str_replace([':', '*', '?', '"', '<', '>', '|'], '_', $basename);
     }
@@ -643,18 +634,6 @@ class FileSystem implements FileSystemInterface {
     $temporary_directory = $this->settings->get('file_temp_path');
     if (!empty($temporary_directory)) {
       return $temporary_directory;
-    }
-
-    // Fallback to config for Backwards compatibility.
-    // This service is lazy-loaded and not injected, as the file_system service
-    // is used in the install phase before config_factory service exists. It
-    // will be removed before Drupal 9.0.0.
-    if (\Drupal::hasContainer()) {
-      $temporary_directory = \Drupal::config('system.file')->get('path.temporary');
-      if (!empty($temporary_directory)) {
-        @trigger_error("The 'system.file' config 'path.temporary' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Set 'file_temp_path' in settings.php instead. See https://www.drupal.org/node/3039255", E_USER_DEPRECATED);
-        return $temporary_directory;
-      }
     }
 
     // Fallback to OS default.
@@ -724,7 +703,8 @@ class FileSystem implements FileSystemInterface {
    * @see \Drupal\Core\File\FileSystemInterface::scanDirectory()
    */
   protected function doScanDirectory($dir, $mask, array $options = [], $depth = 0) {
-    $files = [];
+    $files_in_sub_dirs = [];
+    $files_in_this_directory = [];
     // Avoid warnings when opendir does not have the permissions to open a
     // directory.
     if ($handle = @opendir($dir)) {
@@ -738,19 +718,17 @@ class FileSystem implements FileSystemInterface {
             $uri = "$dir/$filename";
           }
           if ($options['recurse'] && is_dir($uri)) {
-            // Give priority to files in this folder by merging them in after
-            // any subdirectory files.
-            $files = array_merge($this->doScanDirectory($uri, $mask, $options, $depth + 1), $files);
+            $files_in_sub_dirs[] = $this->doScanDirectory($uri, $mask, $options, $depth + 1);
           }
           elseif ($depth >= $options['min_depth'] && preg_match($mask, $filename)) {
-            // Always use this match over anything already set in $files with
-            // the same $options['key'].
+            // Always use this match over anything already set with the same
+            // $options['key'].
             $file = new \stdClass();
             $file->uri = $uri;
             $file->filename = $filename;
             $file->name = pathinfo($filename, PATHINFO_FILENAME);
             $key = $options['key'];
-            $files[$file->$key] = $file;
+            $files_in_this_directory[$file->$key] = $file;
             if ($options['callback']) {
               $options['callback']($uri);
             }
@@ -763,7 +741,9 @@ class FileSystem implements FileSystemInterface {
       $this->logger->error('@dir can not be opened', ['@dir' => $dir]);
     }
 
-    return $files;
+    // Give priority to files in this folder by merging them after
+    // any subdirectory files.
+    return array_merge(array_merge(...$files_in_sub_dirs), $files_in_this_directory);
   }
 
 }

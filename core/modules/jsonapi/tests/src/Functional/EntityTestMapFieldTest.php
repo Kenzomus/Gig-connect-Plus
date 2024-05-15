@@ -16,7 +16,7 @@ class EntityTestMapFieldTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test'];
+  protected static $modules = ['entity_test'];
 
   /**
    * {@inheritdoc}
@@ -109,7 +109,7 @@ class EntityTestMapFieldTest extends ResourceTestBase {
           'self' => ['href' => $self_url],
         ],
         'attributes' => [
-          'created' => (new \DateTime())->setTimestamp($this->entity->get('created')->value)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'created' => (new \DateTime())->setTimestamp((int) $this->entity->get('created')->value)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'langcode' => 'en',
           'name' => 'Llama',
           'data' => static::$mapValue,
@@ -119,6 +119,9 @@ class EntityTestMapFieldTest extends ResourceTestBase {
           'user_id' => [
             'data' => [
               'id' => $author->uuid(),
+              'meta' => [
+                'drupal_internal__target_id' => (int) $author->id(),
+              ],
               'type' => 'user--user',
             ],
             'links' => [
@@ -139,7 +142,7 @@ class EntityTestMapFieldTest extends ResourceTestBase {
       'data' => [
         'type' => 'entity_test_map_field--entity_test_map_field',
         'attributes' => [
-          'name' => 'Dramallama',
+          'name' => 'Drama llama',
           'data' => static::$mapValue,
         ],
       ],

@@ -10,13 +10,14 @@ use Drupal\node\Entity\NodeType;
  * JSON:API integration test for the "BaseFieldOverride" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class BaseFieldOverrideTest extends ResourceTestBase {
+class BaseFieldOverrideTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['field', 'node'];
+  protected static $modules = ['field', 'node', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -61,6 +62,7 @@ class BaseFieldOverrideTest extends ResourceTestBase {
       'field_name' => 'promote',
       'entity_type' => 'node',
       'bundle' => 'camelids',
+      'label' => 'Promote to front page',
     ]);
     $entity->save();
 
@@ -103,7 +105,7 @@ class BaseFieldOverrideTest extends ResourceTestBase {
           'entity_type' => 'node',
           'field_name' => 'promote',
           'field_type' => 'boolean',
-          'label' => NULL,
+          'label' => 'Promote to front page',
           'langcode' => 'en',
           'required' => FALSE,
           'settings' => [
@@ -123,6 +125,7 @@ class BaseFieldOverrideTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**
@@ -140,6 +143,7 @@ class BaseFieldOverrideTest extends ResourceTestBase {
       'field_name' => 'status',
       'entity_type' => 'node',
       'bundle' => 'camelids',
+      'label' => 'Published',
     ]);
     $entity->save();
     return $entity;

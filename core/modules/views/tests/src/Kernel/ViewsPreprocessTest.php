@@ -20,12 +20,12 @@ class ViewsPreprocessTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test', 'user', 'node'];
+  protected static $modules = ['entity_test', 'user', 'node'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test');
@@ -43,7 +43,7 @@ class ViewsPreprocessTest extends ViewsKernelTestBase {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = \Drupal::service('renderer');
 
-    $view = Views::getview('test_preprocess');
+    $view = Views::getView('test_preprocess');
     $build = $view->buildRenderable();
     $renderer->renderRoot($build);
     $this->assertStringContainsString('class="entity-test--default entity-test__default', (string) $build['#markup']);

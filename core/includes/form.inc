@@ -6,6 +6,8 @@
  */
 
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Batch\BatchStorageInterface;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Element\RenderElement;
 use Drupal\Core\Template\Attribute;
@@ -85,7 +87,7 @@ function form_select_options($element, $choices = NULL) {
 
   // array_key_exists() accommodates the rare event where $element['#value'] is NULL.
   // isset() fails in this situation.
-  $value_valid = isset($element['#value']) || array_key_exists('#value', $element);
+  $value_valid = \array_key_exists('#value', $element);
   $value_is_array = $value_valid && is_array($element['#value']);
   // Check if the element is multiple select and no value has been selected.
   $empty_value = (empty($element['#value']) && !empty($element['#multiple']));
@@ -156,7 +158,7 @@ function form_select_options($element, $choices = NULL) {
  * @param $key
  *   The key to look for.
  *
- * @return
+ * @return array|bool
  *   An array of indexes that match the given $key. Array will be
  *   empty if no elements were found. FALSE if optgroups were found.
  */
@@ -193,10 +195,10 @@ function template_preprocess_fieldset(&$variables) {
   $element = $variables['element'];
   Element::setAttributes($element, ['id']);
   RenderElement::setAttributes($element);
-  $variables['attributes'] = isset($element['#attributes']) ? $element['#attributes'] : [];
-  $variables['prefix'] = isset($element['#field_prefix']) ? $element['#field_prefix'] : NULL;
-  $variables['suffix'] = isset($element['#field_suffix']) ? $element['#field_suffix'] : NULL;
-  $variables['title_display'] = isset($element['#title_display']) ? $element['#title_display'] : NULL;
+  $variables['attributes'] = $element['#attributes'] ?? [];
+  $variables['prefix'] = $element['#field_prefix'] ?? NULL;
+  $variables['suffix'] = $element['#field_suffix'] ?? NULL;
+  $variables['title_display'] = $element['#title_display'] ?? NULL;
   $variables['children'] = $element['#children'];
   $variables['required'] = !empty($element['#required']) ? $element['#required'] : NULL;
 
@@ -216,6 +218,11 @@ function template_preprocess_fieldset(&$variables) {
   if (!empty($element['#description'])) {
     $description_id = $element['#attributes']['id'] . '--description';
     $description_attributes['id'] = $description_id;
+    $variables['description_display'] = $element['#description_display'];
+    if ($element['#description_display'] === 'invisible') {
+      $description_attributes['class'][] = 'visually-hidden';
+    }
+    $description_attributes['data-drupal-field-elements'] = 'description';
     $variables['description']['attributes'] = new Attribute($description_attributes);
     $variables['description']['content'] = $element['#description'];
 
@@ -248,7 +255,6 @@ function template_preprocess_details(&$variables) {
       $variables['summary_attributes']['aria-controls'] = $element['#attributes']['id'];
     }
     $variables['summary_attributes']['aria-expanded'] = !empty($element['#attributes']['open']) ? 'true' : 'false';
-    $variables['summary_attributes']['aria-pressed'] = $variables['summary_attributes']['aria-expanded'];
   }
   $variables['title'] = (!empty($element['#title'])) ? $element['#title'] : '';
   // If the element title is a string, wrap it a render array so that markup
@@ -392,6 +398,7 @@ function template_preprocess_textarea(&$variables) {
 
 /**
  * Returns HTML for a form element.
+ *
  * Prepares variables for form element templates.
  *
  * Default template: form-element.html.twig.
@@ -472,8 +479,8 @@ function template_preprocess_form_element(&$variables) {
 
   $variables['title_display'] = $element['#title_display'];
 
-  $variables['prefix'] = isset($element['#field_prefix']) ? $element['#field_prefix'] : NULL;
-  $variables['suffix'] = isset($element['#field_suffix']) ? $element['#field_suffix'] : NULL;
+  $variables['prefix'] = $element['#field_prefix'] ?? NULL;
+  $variables['suffix'] = $element['#field_suffix'] ?? NULL;
 
   $variables['description'] = NULL;
   if (!empty($element['#description'])) {
@@ -514,7 +521,7 @@ function template_preprocess_form_element(&$variables) {
  * this function will output no label (''). For required elements that have an
  * empty #title, this will output the required marker alone within the label.
  * The label will use the #id to associate the marker with the field that is
- * required. That is especially important for screenreader users to know
+ * required. That is especially important for screen reader users to know
  * which field is required.
  *
  * To associate the label with a different field, set the #for property to the
@@ -576,7 +583,7 @@ function template_preprocess_form_element_label(&$variables) {
  *     array('my_function_2', array()),
  *   ),
  *   'finished' => 'my_finished_callback',
- *   'file' => 'path_to_file_containing_myfunctions',
+ *   'file' => 'path_to_file_containing_my_functions',
  * );
  * batch_set($batch);
  * // Only needed if not inside a form _submit handler.
@@ -626,7 +633,7 @@ function template_preprocess_form_element_label(&$variables) {
  *     $context['sandbox']['progress'] = 0;
  *     $context['sandbox']['current_id'] = 0;
  *     $context['sandbox']['max'] = \Drupal::database()
- *       ->query('SELECT COUNT(DISTINCT id) FROM {example}')
+ *       ->query('SELECT COUNT(DISTINCT [id]) FROM {example}')
  *       ->fetchField();
  *   }
  *   $limit = 5;
@@ -650,7 +657,9 @@ function template_preprocess_form_element_label(&$variables) {
  *
  * Sample callback_batch_finished():
  * @code
- * function my_finished_callback($success, $results, $operations) {
+ * function my_finished_callback($success, $results, $operations, $elapsed) {
+ *   // See callback_batch_finished() for more information about these
+ *   // parameters.
  *   // The 'success' parameter means no fatal PHP errors were detected. All
  *   // other error management should be handled using 'results'.
  *   if ($success) {
@@ -713,7 +722,7 @@ function template_preprocess_form_element_label(&$variables) {
  *   - file: Path to the file containing the definitions of the 'operations' and
  *     'finished' functions, for instance if they don't reside in the main
  *     .module file. The path should be relative to base_path(), and thus should
- *     be built using drupal_get_path().
+ *     be built using ModuleExtensionList::getPath().
  *   - library: An array of batch-specific CSS and JS libraries.
  *   - url_options: options passed to the \Drupal\Core\Url object when
  *     constructing redirect URLs for the batch.
@@ -876,7 +885,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
     $process_info = [
       'current_set' => 0,
       'progressive' => TRUE,
-      'url' => isset($url) ? $url : Url::fromRoute('system.batch_page.html'),
+      'url' => $url ?? Url::fromRoute('system.batch_page.html'),
       'source_url' => Url::fromRouteMatch(\Drupal::routeMatch())->mergeOptions(['query' => \Drupal::request()->query->all()]),
       'batch_redirect' => $redirect,
       'theme' => \Drupal::theme()->getActiveTheme()->getName(),
@@ -889,9 +898,26 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
     // environments.
     \Drupal::moduleHandler()->alter('batch', $batch);
 
-    // Assign an arbitrary id: don't rely on a serial column in the 'batch'
-    // table, since non-progressive batches skip database storage completely.
-    $batch['id'] = \Drupal::database()->nextId();
+    // Assign an id to progressive batches. Non-progressive batches skip
+    // database storage completely.
+    try {
+      $batch['id'] = $batch['progressive'] ? \Drupal::service(BatchStorageInterface::class)->getId() : 'non-progressive';
+    }
+    catch (IntegrityConstraintViolationException $e) {
+      // @todo this is here to support the update path to deprecate
+      // Connection::nextId(). Remove in Drupal 11.
+      $connection = \Drupal::database();
+      $max_bid = (int) $connection->query('SELECT MAX([bid]) FROM {batch}')->fetchField();
+      $batch['id'] = $max_bid + 1;
+      $connection->insert('batch')
+        ->fields([
+          'bid' => $batch['id'],
+          'timestamp' => \Drupal::time()->getRequestTime(),
+          'token' => '',
+          'batch' => NULL,
+        ])
+        ->execute();
+    }
 
     // Move operations to a job queue. Non-progressive batches will use a
     // memory-based queue.
@@ -912,7 +938,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
       $query_options['op'] = 'finished';
       $error_url->setOption('query', $query_options);
 
-      $batch['error_message'] = t('Please continue to <a href=":error_url">the error page</a>', [':error_url' => $error_url->toString(TRUE)->getGeneratedUrl()]);
+      $batch['error_message'] = t('Continue to <a href=":error_url">the error page</a>', [':error_url' => $error_url->toString(TRUE)->getGeneratedUrl()]);
 
       // Clear the way for the redirection to the batch processing page, by
       // saving and unsetting the 'destination', if there is any.
@@ -923,7 +949,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
       }
 
       // Store the batch.
-      \Drupal::service('batch.storage')->create($batch);
+      \Drupal::service(BatchStorageInterface::class)->create($batch);
 
       // Set the batch number in the session to guarantee that it will stay alive.
       $_SESSION['batches'][$batch['id']] = TRUE;
@@ -1003,7 +1029,7 @@ function _batch_populate_queue(&$batch, $set_id) {
  * @param $batch_set
  *   The batch set.
  *
- * @return
+ * @return \Drupal\Core\Queue\QueueInterface|null
  *   The queue object.
  */
 function _batch_queue($batch_set) {

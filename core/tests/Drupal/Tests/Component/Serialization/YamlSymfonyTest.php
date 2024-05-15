@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\Serialization;
 
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
@@ -41,9 +43,11 @@ class YamlSymfonyTest extends YamlTestBase {
    * @covers ::encode
    */
   public function testEncode() {
+    // cSpell:disable
     $this->assertEquals('foo:
   bar: \'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus sapien ex, venenatis vitae nisi eu, posuere luctus dolor. Nullam convallis\'
 ', YamlSymfony::encode(['foo' => ['bar' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus sapien ex, venenatis vitae nisi eu, posuere luctus dolor. Nullam convallis']]));
+    // cSpell:enable
   }
 
   /**

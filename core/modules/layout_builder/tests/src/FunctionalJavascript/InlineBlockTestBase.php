@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\layout_builder\FunctionalJavascript;
 
 use Drupal\block_content\Entity\BlockContentType;
@@ -26,7 +28,7 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block_content',
     'layout_builder',
     'block',
@@ -44,7 +46,7 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_tasks_block');
@@ -97,7 +99,11 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
    * Gets the latest block entity id.
    */
   protected function getLatestBlockEntityId() {
-    $block_ids = \Drupal::entityQuery('block_content')->sort('id', 'DESC')->range(0, 1)->execute();
+    $block_ids = \Drupal::entityQuery('block_content')
+      ->accessCheck(FALSE)
+      ->sort('id', 'DESC')
+      ->range(0, 1)
+      ->execute();
     $block_id = array_pop($block_ids);
     $this->assertNotEmpty($this->blockStorage->load($block_id));
     return $block_id;
@@ -135,8 +141,8 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
     $page = $this->getSession()->getPage();
     $page->clickLink('Add block');
     $assert_session->assertWaitOnAjaxRequest();
-    $this->assertNotEmpty($assert_session->waitForLink('Create custom block'));
-    $this->clickLink('Create custom block');
+    $this->assertNotEmpty($assert_session->waitForLink('Create content block'));
+    $this->clickLink('Create content block');
     $assert_session->assertWaitOnAjaxRequest();
     $textarea = $assert_session->waitForElement('css', '[name="settings[block_form][body][0][value]"]');
     $this->assertNotEmpty($textarea);
@@ -173,23 +179,6 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
   }
 
   /**
-   * Waits for an element to be removed from the page.
-   *
-   * @param string $selector
-   *   CSS selector.
-   * @param int $timeout
-   *   (optional) Timeout in milliseconds, defaults to 10000.
-   *
-   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
-   *   Drupal\FunctionalJavascriptTests\JSWebAssert::assertNoElementAfterWait()
-   */
-  protected function waitForNoElement($selector, $timeout = 10000) {
-    @trigger_error('::waitForNoElement is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Use \Drupal\FunctionalJavascriptTests\JSWebAssert::assertNoElementAfterWait() instead.', E_USER_DEPRECATED);
-    $condition = "(typeof jQuery !== 'undefined' && jQuery('$selector').length === 0)";
-    $this->assertJsCondition($condition, $timeout);
-  }
-
-  /**
    * Asserts that the dialog closes and the new text appears on the main canvas.
    *
    * @param string $text
@@ -200,7 +189,6 @@ abstract class InlineBlockTestBase extends WebDriverTestBase {
   protected function assertDialogClosedAndTextVisible($text, $css_locator = NULL) {
     $assert_session = $this->assertSession();
     $assert_session->assertNoElementAfterWait('css', '#drupal-off-canvas');
-    $assert_session->assertWaitOnAjaxRequest();
     $assert_session->elementNotExists('css', '#drupal-off-canvas');
     if ($css_locator) {
       $this->assertNotEmpty($assert_session->waitForElementVisible('css', ".dialog-off-canvas-main-canvas $css_locator:contains('$text')"));

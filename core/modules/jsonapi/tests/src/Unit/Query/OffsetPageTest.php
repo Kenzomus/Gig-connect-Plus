@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\jsonapi\Unit\Query;
 
 use Drupal\Core\Cache\Context\CacheContextsManager;
@@ -20,7 +22,7 @@ class OffsetPageTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $container = new Container();

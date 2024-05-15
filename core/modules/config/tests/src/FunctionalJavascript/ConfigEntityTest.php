@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\config\FunctionalJavascript;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
@@ -14,7 +16,7 @@ class ConfigEntityTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['config_test'];
+  protected static $modules = ['config_test'];
 
   /**
    * {@inheritdoc}

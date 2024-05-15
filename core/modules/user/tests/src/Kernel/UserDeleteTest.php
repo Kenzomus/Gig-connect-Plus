@@ -25,10 +25,9 @@ class UserDeleteTest extends KernelTestBase {
   ];
 
   /**
-   * Test deleting multiple users.
+   * Tests deleting multiple users.
    */
   public function testUserDeleteMultiple() {
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('user');
 

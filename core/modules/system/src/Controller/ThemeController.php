@@ -187,7 +187,7 @@ class ThemeController extends ControllerBase {
     $themes_to_enable = array_merge([$theme], $dependencies);
 
     foreach ($themes_to_enable as $name) {
-      if (!empty($all_themes[$name]->info['experimental']) && $all_themes[$name]->status === 0) {
+      if (isset($all_themes[$name]) && $all_themes[$name]->isExperimental() && $all_themes[$name]->status === 0) {
         return TRUE;
       }
     }
@@ -234,7 +234,7 @@ class ThemeController extends ControllerBase {
         $admin_theme = $config->get('admin');
         if (!empty($admin_theme) && $admin_theme != $theme) {
           $this->messenger()
-            ->addStatus($this->t('Please note that the administration theme is still set to the %admin_theme theme; consequently, the theme on this page remains unchanged. All non-administrative sections of the site, however, will show the selected %selected_theme theme by default.', [
+            ->addStatus($this->t('Note that the administration theme is still set to the %admin_theme theme; consequently, the theme on this page remains unchanged. All non-administrative sections of the site, however, will show the selected %selected_theme theme by default.', [
               '%admin_theme' => $themes[$admin_theme]->info['name'],
               '%selected_theme' => $themes[$theme]->info['name'],
             ]));

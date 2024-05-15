@@ -9,13 +9,14 @@ use Drupal\Core\Url;
  * JSON:API integration test for the "CommentType" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class CommentTypeTest extends ResourceTestBase {
+class CommentTypeTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'comment'];
+  protected static $modules = ['node', 'comment'];
 
   /**
    * {@inheritdoc}
@@ -104,6 +105,7 @@ class CommentTypeTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

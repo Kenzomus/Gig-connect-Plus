@@ -32,12 +32,12 @@ class FieldMissingTypeTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $entity_type_id = 'entity_test_mulrev';
     $this->installEntitySchema($entity_type_id);
-    $this->fieldName = mb_strtolower($this->randomMachineName());
+    $this->fieldName = $this->randomMachineName();
 
     /** @var \Drupal\field\Entity\FieldStorageConfig $field_storage */
     FieldStorageConfig::create([

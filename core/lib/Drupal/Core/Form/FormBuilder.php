@@ -17,9 +17,9 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\FileBag;
-use Symfony\Component\HttpFoundation\ParameterBag;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -40,7 +40,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -108,8 +108,10 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   protected $formCache;
 
   /**
-   * Defines element value callables which are safe to run even when the form
-   * state has an invalid CSRF token.
+   * Defines callables that are safe to run with invalid CSRF tokens.
+   *
+   * These Element value callables are safe to run even when the form state has
+   * an invalid CSRF token.
    *
    * Excluded from this list on purpose:
    *  - Drupal\file\Element\ManagedFile::valueCallback
@@ -157,7 +159,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    *   The form cache.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack.
@@ -193,8 +195,11 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $form_arg = $this->classResolver->getInstanceFromDefinition($form_arg);
     }
 
-    if (!is_object($form_arg) || !($form_arg instanceof FormInterface)) {
-      throw new \InvalidArgumentException("The form argument $form_arg is not a valid form.");
+    if (!is_object($form_arg)) {
+      throw new \InvalidArgumentException(("The form class $form_arg could not be found or loaded."));
+    }
+    elseif (!($form_arg instanceof FormInterface)) {
+      throw new \InvalidArgumentException('The form argument ' . $form_arg::class . ' must be an instance of \Drupal\Core\Form\FormInterface.');
     }
 
     // Add the $form_arg as the callback object and determine the form ID.
@@ -302,7 +307,6 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     }
 
     // If this form is an AJAX request, disable all form redirects.
-    $request = $this->requestStack->getCurrentRequest();
     if ($ajax_form_request = $request->query->has(static::AJAX_FORM_REQUEST)) {
       $form_state->disableRedirect();
     }
@@ -323,7 +327,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // In case the post request exceeds the configured allowed size
     // (post_max_size), the post request is potentially broken. Add some
     // protection against that and at the same time have a nice error message.
-    if ($ajax_form_request && !$request->request->has('form_id')) {
+    if ($ajax_form_request && !$request->get('form_id')) {
       throw new BrokenPostRequestException($this->getFileUploadMaxSize());
     }
 
@@ -336,7 +340,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // build a proper AJAX response.
     // Only do this when the form ID matches, since there is no guarantee from
     // $ajax_form_request that it's an AJAX request for this particular form.
-    if ($ajax_form_request && $form_state->isProcessingInput() && $request->request->get('form_id') == $form_id) {
+    if ($ajax_form_request && $form_state->isProcessingInput() && $request->get('form_id') == $form_id) {
       throw new FormAjaxException($form, $form_state);
     }
 
@@ -694,6 +698,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       // See https://www.drupal.org/node/2562341.
       // The placeholder uses a unique string that is returned by
       // Crypt::hashBase64('Drupal\Core\Form\FormBuilder::prepareForm').
+      // cspell:disable-next-line
       $placeholder = 'form_action_p_pvdeGsVG5zNF_XLGPTvYSKCf43t8qZYSwcfZl2uzM';
 
       $form['#attached']['placeholders'][$placeholder] = [
@@ -728,7 +733,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       '#value' => $form['#build_id'],
       '#id' => $form['#build_id'],
       '#name' => 'form_build_id',
-      // Form processing and validation requires this value. Ensure the
+      // Form processing and validation require this value. Ensure the
       // submitted form value appears literally, regardless of custom #tree
       // and #parents being set elsewhere.
       '#parents' => ['form_build_id'],
@@ -769,7 +774,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
           '#id' => Html::getUniqueId('edit-' . $form_id . '-form-token'),
           '#type' => 'token',
           '#default_value' => $placeholder,
-          // Form processing and validation requires this value. Ensure the
+          // Form processing and validation require this value. Ensure the
           // submitted form value appears literally, regardless of custom #tree
           // and #parents being set elsewhere.
           '#parents' => ['form_token'],
@@ -844,14 +849,14 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    *   The URL to be used as the $form['#action'].
    */
   protected function buildFormAction() {
-    // @todo Use <current> instead of the master request in
+    // @todo Use <current> instead of the main request in
     //   https://www.drupal.org/node/2505339.
-    $request = $this->requestStack->getMasterRequest();
+    $request = $this->requestStack->getMainRequest();
     $request_uri = $request->getRequestUri();
 
     // Prevent cross site requests via the Form API by using an absolute URL
     // when the request uri starts with multiple slashes..
-    if (strpos($request_uri, '//') === 0) {
+    if (str_starts_with($request_uri, '//')) {
       $request_uri = $request->getUri();
     }
 
@@ -962,7 +967,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
             $request = $this->requestStack->getCurrentRequest();
             // Do not trust any POST data.
-            $request->request = new ParameterBag();
+            $request->request = new InputBag();
             // Make sure file uploads do not get processed.
             $request->files = new FileBag();
             // Ensure PHP globals reflect these changes.
@@ -1172,7 +1177,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $name = array_shift($element['#parents']);
       $element['#name'] = $name;
       if ($element['#type'] == 'file') {
-        // To make it easier to handle files in file.inc, we place all
+        // To make it easier to handle files, we place all
         // file fields in the 'files' array. Also, we do not support
         // nested file names.
         // @todo Remove this files prefix now?
@@ -1218,14 +1223,16 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // #access=FALSE on an element usually allow access for some users, so forms
     // submitted with self::submitForm() may bypass access restriction and be
     // treated as high-privilege users instead.
-    $process_input = empty($element['#disabled']) && (($form_state->isProgrammed() && $form_state->isBypassingProgrammedAccessChecks()) || ($form_state->isProcessingInput() && (!isset($element['#access']) || $element['#access'])));
+    $process_input = empty($element['#disabled']) &&
+      !in_array($element['#type'], ['item', 'value'], TRUE) &&
+      (
+        ($form_state->isProgrammed() && $form_state->isBypassingProgrammedAccessChecks()) ||
+        ($form_state->isProcessingInput() && (!isset($element['#access']) || (($element['#access'] instanceof AccessResultInterface && $element['#access']->isAllowed()) || ($element['#access'] === TRUE))))
+      );
 
     // Set the element's #value property.
     if (!isset($element['#value']) && !array_key_exists('#value', $element)) {
-      // @todo Once all elements are converted to plugins in
-      //   https://www.drupal.org/node/2311393, rely on
-      //   $element['#value_callback'] directly.
-      $value_callable = !empty($element['#value_callback']) ? $element['#value_callback'] : 'form_type_' . $element['#type'] . '_value';
+      $value_callable = $element['#value_callback'] ?? NULL;
       if (!is_callable($value_callable)) {
         $value_callable = '\Drupal\Core\Render\Element\FormElement::valueCallback';
       }
@@ -1281,7 +1288,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
         // value. Avoid image buttons (which come with garbage value), so we
         // only get value for the button actually clicked.
         if (!isset($element['#value']) && empty($element['#has_garbage_value'])) {
-          $element['#value'] = isset($element['#default_value']) ? $element['#default_value'] : '';
+          $element['#value'] = $element['#default_value'] ?? '';
         }
       }
     }
@@ -1390,11 +1397,11 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   /**
    * Wraps file_upload_max_size().
    *
-   * @return string
-   *   A translated string representation of the size of the file size limit
-   *   based on the PHP upload_max_filesize and post_max_size.
+   * @return int
+   *   The file size limit in bytes based on the PHP upload_max_filesize and
+   *   post_max_size.
    */
-  protected function getFileUploadMaxSize() {
+  protected function getFileUploadMaxSize(): int {
     return Environment::getUploadMaxSize();
   }
 

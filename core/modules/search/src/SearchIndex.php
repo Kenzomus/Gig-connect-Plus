@@ -5,7 +5,6 @@ namespace Drupal\search;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\search\Exception\SearchIndexException;
 
 /**
@@ -42,6 +41,13 @@ class SearchIndex implements SearchIndexInterface {
   protected $cacheTagsInvalidator;
 
   /**
+   * The text processor.
+   *
+   * @var \Drupal\search\SearchTextProcessorInterface
+   */
+  protected $textProcessor;
+
+  /**
    * SearchIndex constructor.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -52,12 +58,15 @@ class SearchIndex implements SearchIndexInterface {
    *   The database replica connection.
    * @param \Drupal\Core\Cache\CacheTagsInvalidatorInterface $cache_tags_invalidator
    *   The cache tags invalidator.
+   * @param \Drupal\search\SearchTextProcessorInterface $text_processor
+   *   The text processor.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, Connection $connection, Connection $replica, CacheTagsInvalidatorInterface $cache_tags_invalidator) {
+  public function __construct(ConfigFactoryInterface $config_factory, Connection $connection, Connection $replica, CacheTagsInvalidatorInterface $cache_tags_invalidator, SearchTextProcessorInterface $text_processor) {
     $this->configFactory = $config_factory;
     $this->connection = $connection;
     $this->replica = $replica;
     $this->cacheTagsInvalidator = $cache_tags_invalidator;
+    $this->textProcessor = $text_processor;
   }
 
   /**
@@ -90,11 +99,11 @@ class SearchIndex implements SearchIndexInterface {
     // Starting score per word.
     $score = 1;
     // Accumulator for cleaned up data.
-    $accum = ' ';
+    $accumulator = ' ';
     // Stack with open tags.
-    $tagstack = [];
+    $tag_stack = [];
     // Counter for consecutive words.
-    $tagwords = 0;
+    $tag_words = 0;
     // Focus state.
     $focus = 1;
 
@@ -104,46 +113,46 @@ class SearchIndex implements SearchIndexInterface {
     foreach ($split as $value) {
       if ($tag) {
         // Increase or decrease score per word based on tag.
-        list($tagname) = explode(' ', $value, 2);
+        [$tagname] = explode(' ', $value, 2);
         $tagname = mb_strtolower($tagname);
         // Closing or opening tag?
         if ($tagname[0] == '/') {
           $tagname = substr($tagname, 1);
           // If we encounter unexpected tags, reset score to avoid incorrect
           // boosting.
-          if (!count($tagstack) || $tagstack[0] != $tagname) {
-            $tagstack = [];
+          if (!count($tag_stack) || $tag_stack[0] != $tagname) {
+            $tag_stack = [];
             $score = 1;
           }
           else {
             // Remove from tag stack and decrement score.
-            $score = max(1, $score - $tags[array_shift($tagstack)]);
+            $score = max(1, $score - $tags[array_shift($tag_stack)]);
           }
         }
         else {
-          if (isset($tagstack[0]) && $tagstack[0] == $tagname) {
+          if (isset($tag_stack[0]) && $tag_stack[0] == $tagname) {
             // None of the tags we look for make sense when nested identically.
             // If they are, it's probably broken HTML.
-            $tagstack = [];
+            $tag_stack = [];
             $score = 1;
           }
           else {
             // Add to open tag stack and increment score.
-            array_unshift($tagstack, $tagname);
+            array_unshift($tag_stack, $tagname);
             $score += $tags[$tagname];
           }
         }
         // A tag change occurred, reset counter.
-        $tagwords = 0;
+        $tag_words = 0;
       }
       else {
         // Note: use of PREG_SPLIT_DELIM_CAPTURE above will introduce empty
         // values.
         if ($value != '') {
-          $words = search_index_split($value, $langcode);
+          $words = $this->textProcessor->process($value, $langcode);
           foreach ($words as $word) {
             // Add word to accumulator.
-            $accum .= $word . ' ';
+            $accumulator .= $word . ' ';
             // Check word length.
             if (is_numeric($word) || mb_strlen($word) >= $minimum_word_size) {
               if (!isset($scored_words[$word])) {
@@ -155,11 +164,11 @@ class SearchIndex implements SearchIndexInterface {
               // e.g. 0.5 at 500 words and 0.3 at 1000 words.
               $focus = min(1, .01 + 3.5 / (2 + count($scored_words) * .015));
             }
-            $tagwords++;
+            $tag_words++;
             // Too many words inside a single tag probably mean a tag was
             // accidentally left open.
-            if (count($tagstack) && $tagwords >= 15) {
-              $tagstack = [];
+            if (count($tag_stack) && $tag_words >= 15) {
+              $tag_stack = [];
               $score = 1;
             }
           }
@@ -179,7 +188,7 @@ class SearchIndex implements SearchIndexInterface {
           'sid' => $sid,
           'langcode' => $langcode,
           'type' => $type,
-          'data' => $accum,
+          'data' => $accumulator,
           'reindex' => 0,
         ])
         ->execute();
@@ -197,7 +206,7 @@ class SearchIndex implements SearchIndexInterface {
             'type' => $type,
           ])
           ->fields(['score' => $score])
-          ->expression('score', 'score + :score', [':score' => $score])
+          ->expression('score', '[score] + :score', [':score' => $score])
           ->execute();
         $current_words[$word] = TRUE;
       }
@@ -286,7 +295,7 @@ class SearchIndex implements SearchIndexInterface {
       $words = array_keys($words);
       foreach ($words as $word) {
         // Get total count.
-        $total = $this->replica->query("SELECT SUM(score) FROM {search_index} WHERE word = :word", [':word' => $word])
+        $total = $this->replica->query("SELECT SUM([score]) FROM {search_index} WHERE [word] = :word", [':word' => $word])
           ->fetchField();
         // Apply Zipf's law to equalize the probability distribution.
         $total = log10(1 + 1 / (max(1, $total)));
@@ -298,8 +307,8 @@ class SearchIndex implements SearchIndexInterface {
       // Find words that were deleted from search_index, but are still in
       // search_total. We use a LEFT JOIN between the two tables and keep only
       // the rows which fail to join.
-      $result = $this->replica->query("SELECT t.word AS realword, i.word FROM {search_total} t LEFT JOIN {search_index} i ON t.word = i.word WHERE i.word IS NULL");
-      $or = new Condition('OR');
+      $result = $this->replica->query("SELECT [t].[word] AS [realword], [i].[word] FROM {search_total} [t] LEFT JOIN {search_index} [i] ON [t].[word] = [i].[word] WHERE [i].[word] IS NULL");
+      $or = $this->replica->condition('OR');
       foreach ($result as $word) {
         $or->condition('word', $word->realword);
       }

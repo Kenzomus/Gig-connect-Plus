@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\Plugin;
 
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
@@ -69,7 +71,7 @@ class DefaultFactoryTest extends TestCase {
   }
 
   /**
-   * Tests getPluginClass() with a not existing class definition.
+   * Tests getPluginClass() with a non-existent class definition.
    *
    * @covers ::getPluginClass
    */
@@ -80,7 +82,7 @@ class DefaultFactoryTest extends TestCase {
   }
 
   /**
-   * Tests getPluginClass() with a not existing class definition.
+   * Tests getPluginClass() with a non-existent class definition.
    *
    * @covers ::getPluginClass
    */

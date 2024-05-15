@@ -32,14 +32,17 @@ class CommentUninstallTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('comment');
     $this->installConfig(['comment']);
     $this->installSchema('user', ['users_data']);
 
-    NodeType::create(['type' => 'article'])->save();
+    NodeType::create([
+      'type' => 'article',
+      'name' => 'Article',
+    ])->save();
 
     // Create comment field on article so that it adds 'comment_body' field.
     FieldStorageConfig::create([

@@ -7,32 +7,29 @@ use Drupal\Core\Cache\ListCacheBinsPass;
 use Drupal\Core\DependencyInjection\Compiler\AuthenticationProviderPass;
 use Drupal\Core\DependencyInjection\Compiler\BackendCompilerPass;
 use Drupal\Core\DependencyInjection\Compiler\CorsCompilerPass;
-use Drupal\Core\DependencyInjection\Compiler\GuzzleMiddlewarePass;
-use Drupal\Core\DependencyInjection\Compiler\ContextProvidersPass;
+use Drupal\Core\DependencyInjection\Compiler\DeprecatedServicePass;
+use Drupal\Core\DependencyInjection\Compiler\DevelopmentSettingsPass;
+use Drupal\Core\DependencyInjection\Compiler\LoggerAwarePass;
+use Drupal\Core\DependencyInjection\Compiler\ModifyServiceDefinitionsPass;
 use Drupal\Core\DependencyInjection\Compiler\ProxyServicesPass;
-use Drupal\Core\DependencyInjection\Compiler\DependencySerializationTraitPass;
+use Drupal\Core\DependencyInjection\Compiler\RegisterAccessChecksPass;
+use Drupal\Core\DependencyInjection\Compiler\RegisterEventSubscribersPass;
+use Drupal\Core\DependencyInjection\Compiler\RegisterServicesForDestructionPass;
+use Drupal\Core\DependencyInjection\Compiler\RegisterStreamWrappersPass;
 use Drupal\Core\DependencyInjection\Compiler\StackedKernelPass;
 use Drupal\Core\DependencyInjection\Compiler\StackedSessionHandlerPass;
-use Drupal\Core\DependencyInjection\Compiler\RegisterStreamWrappersPass;
+use Drupal\Core\DependencyInjection\Compiler\TaggedHandlersPass;
 use Drupal\Core\DependencyInjection\Compiler\TwigExtensionPass;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
-use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\DependencyInjection\Compiler\ModifyServiceDefinitionsPass;
-use Drupal\Core\DependencyInjection\Compiler\TaggedHandlersPass;
-use Drupal\Core\DependencyInjection\Compiler\RegisterEventSubscribersPass;
-use Drupal\Core\DependencyInjection\Compiler\RegisterAccessChecksPass;
-use Drupal\Core\DependencyInjection\Compiler\RegisterServicesForDestructionPass;
-use Drupal\Core\EventSubscriber\PathSubscriber;
-use Drupal\Core\Path\AliasManager;
-use Drupal\Core\Path\AliasRepository;
-use Drupal\Core\Path\AliasWhitelist;
-use Drupal\Core\PathProcessor\PathProcessorAlias;
 use Drupal\Core\Plugin\PluginManagerPass;
 use Drupal\Core\Render\MainContent\MainContentRenderersPass;
 use Drupal\Core\Site\Settings;
+use Psr\Log\LoggerAwareInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * ServiceProvider class for mandatory core services.
@@ -65,6 +62,8 @@ class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierIn
     // list-building passes are operating on the post-alter services list.
     $container->addCompilerPass(new ModifyServiceDefinitionsPass());
 
+    $container->addCompilerPass(new DevelopmentSettingsPass());
+
     $container->addCompilerPass(new ProxyServicesPass());
 
     $container->addCompilerPass(new BackendCompilerPass());
@@ -80,12 +79,11 @@ class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierIn
     // Collect tagged handler services as method calls on consumer services.
     $container->addCompilerPass(new TaggedHandlersPass());
     $container->addCompilerPass(new RegisterStreamWrappersPass());
-    $container->addCompilerPass(new GuzzleMiddlewarePass());
-
     $container->addCompilerPass(new TwigExtensionPass());
 
     // Add a compiler pass for registering event subscribers.
     $container->addCompilerPass(new RegisterEventSubscribersPass(), PassConfig::TYPE_AFTER_REMOVING);
+    $container->addCompilerPass(new LoggerAwarePass(), PassConfig::TYPE_AFTER_REMOVING);
 
     $container->addCompilerPass(new RegisterAccessChecksPass());
 
@@ -95,13 +93,19 @@ class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierIn
     // Add the compiler pass that will process the tagged services.
     $container->addCompilerPass(new ListCacheBinsPass());
     $container->addCompilerPass(new CacheContextsPass());
-    $container->addCompilerPass(new ContextProvidersPass());
     $container->addCompilerPass(new AuthenticationProviderPass());
 
     // Register plugin managers.
     $container->addCompilerPass(new PluginManagerPass());
 
-    $container->addCompilerPass(new DependencySerializationTraitPass());
+    $container->addCompilerPass(new DeprecatedServicePass());
+
+    $container->registerForAutoconfiguration(EventSubscriberInterface::class)
+      ->addTag('event_subscriber');
+
+    $container->registerForAutoconfiguration(LoggerAwareInterface::class)
+      ->addTag('logger_aware');
+
   }
 
   /**
@@ -121,54 +125,6 @@ class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierIn
     // Try to use the COM implementation for Windows users.
     elseif (function_exists('com_create_guid')) {
       $uuid_service->setClass('Drupal\Component\Uuid\Com');
-    }
-
-    // Look for missing services that are now defined by the path_alias module,
-    // add them as a fallback until the module is installed.
-    // @todo Remove this in Drupal 9 in https://www.drupal.org/node/3092090.
-    $services = [
-      'path_alias.subscriber' => PathSubscriber::class,
-      'path_alias.path_processor' => PathProcessorAlias::class,
-      'path_alias.manager' => AliasManager::class,
-      'path_alias.whitelist' => AliasWhitelist::class,
-      'path_alias.repository' => AliasRepository::class,
-    ];
-    foreach ($services as $id => $class) {
-      if (!$container->hasDefinition($id)) {
-        $definition = $container->register($id, $class);
-        // Mark the fallback services as deprecated in order to allow other
-        // modules to provide additional checks before relying or altering them.
-        $definition->setDeprecated(TRUE, 'The "%service_id%" service is in fallback mode. See https://drupal.org/node/3092086');
-        switch ($id) {
-          case 'path_alias.subscriber':
-            $definition->addArgument(new Reference('path.alias_manager'));
-            $definition->addArgument(new Reference('path.current'));
-            break;
-
-          case 'path_alias.path_processor':
-            $definition->addArgument(new Reference('path.alias_manager'));
-            break;
-
-          case 'path_alias.repository':
-            $definition->addArgument(new Reference('database'));
-            break;
-
-          case 'path_alias.whitelist':
-            $definition->addArgument('path_alias_whitelist');
-            $definition->addArgument(new Reference('cache.bootstrap'));
-            $definition->addArgument(new Reference('lock'));
-            $definition->addArgument(new Reference('state'));
-            $definition->addArgument(new Reference('path_alias.repository'));
-            break;
-
-          case 'path_alias.manager':
-            $definition->addArgument(new Reference('path_alias.repository'));
-            $definition->addArgument(new Reference('path_alias.whitelist'));
-            $definition->addArgument(new Reference('language_manager'));
-            $definition->addArgument(new Reference('cache.data'));
-            break;
-        }
-      }
     }
   }
 
@@ -192,6 +148,12 @@ class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierIn
     $container
       ->register('test.http_client.middleware', 'Drupal\Core\Test\HttpClientMiddleware\TestHttpClientMiddleware')
       ->addTag('http_client_middleware');
+    // Add the wait terminate middleware which acquires a lock to signal request
+    // termination to the test runner.
+    $container
+      ->register('test.http_middleware.wait_terminate_middleware', 'Drupal\Core\Test\StackMiddleware\TestWaitTerminateMiddleware')
+      ->setArguments([new Reference('state'), new Reference('lock')])
+      ->addTag('http_middleware', ['priority' => -1024]);
   }
 
 }

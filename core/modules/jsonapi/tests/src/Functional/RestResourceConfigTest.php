@@ -9,13 +9,14 @@ use Drupal\rest\Entity\RestResourceConfig;
  * JSON:API integration test for the "RestResourceConfig" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class RestResourceConfigTest extends ResourceTestBase {
+class RestResourceConfigTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['rest', 'dblog'];
+  protected static $modules = ['rest', 'dblog'];
 
   /**
    * {@inheritdoc}
@@ -126,6 +127,7 @@ class RestResourceConfigTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

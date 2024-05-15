@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\language\Unit\process;
 
 use Drupal\language\Plugin\migrate\process\LanguageNegotiation;
@@ -15,7 +17,7 @@ class LanguageNegotiationTest extends MigrateProcessTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->plugin = new LanguageNegotiation([], 'map', []);
     parent::setUp();
   }

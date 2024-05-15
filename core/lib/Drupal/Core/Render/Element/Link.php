@@ -4,6 +4,7 @@ namespace Drupal\Core\Render\Element;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\Html as HtmlUtility;
+use Drupal\Core\Form\FormHelper;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url as CoreUrl;
@@ -13,7 +14,7 @@ use Drupal\Core\Url as CoreUrl;
  *
  * Properties:
  * - #title: The link text.
- * - #url: \Drupal\Core\Url object containing URL information pointing to a
+ * - #url: \Drupal\Core\Url object containing URL information pointing to an
  *   internal or external link. See \Drupal\Core\Utility\LinkGeneratorInterface.
  *
  * Usage example:
@@ -33,7 +34,7 @@ class Link extends RenderElement {
    * {@inheritdoc}
    */
   public function getInfo() {
-    $class = get_class($this);
+    $class = static::class;
     return [
       '#pre_render' => [
         [$class, 'preRenderLink'],
@@ -57,6 +58,12 @@ class Link extends RenderElement {
    *   The passed-in element containing a rendered link in '#markup'.
    */
   public static function preRenderLink($element) {
+    // As the preRenderLink() method is executed before Renderer::doRender(),
+    // call processStates() to make sure that states are added to link elements.
+    if (!empty($element['#states'])) {
+      FormHelper::processStates($element);
+    }
+
     // By default, link options to pass to the link generator are normally set
     // in #options.
     $element += ['#options' => []];
@@ -69,7 +76,7 @@ class Link extends RenderElement {
     }
 
     // This #pre_render callback can be invoked from inside or outside of a Form
-    // API context, and depending on that, a HTML ID may be already set in
+    // API context, and depending on that, an HTML ID may be already set in
     // different locations. #options should have precedence over Form API's #id.
     // #attributes have been taken over into #options above already.
     if (isset($element['#options']['attributes']['id'])) {
@@ -105,15 +112,16 @@ class Link extends RenderElement {
    *
    * This method can be added as a pre_render callback for a renderable array,
    * usually one which will be themed by links.html.twig. It iterates through
-   * all unrendered children of the element, collects any #links properties it
+   * all un-rendered children of the element, collects any #links properties it
    * finds, merges them into the parent element's #links array, and prevents
    * those children from being rendered separately.
    *
    * The purpose of this is to allow links to be logically grouped into related
    * categories, so that each child group can be rendered as its own list of
-   * links if drupal_render() is called on it, but calling drupal_render() on
-   * the parent element will still produce a single list containing all the
-   * remaining links, regardless of what group they were in.
+   * links if RendererInterface::render() is called on it, but
+   * calling RendererInterface::render() on the parent element will
+   * still produce a single list containing all the remaining links, regardless
+   * of what group they were in.
    *
    * A typical example comes from node links, which are stored in a renderable
    * array similar to this:

@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\migrate_drupal\Kernel\Plugin\migrate\source;
 
-use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
 use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -11,13 +10,11 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\media\Entity\Media;
 use Drupal\migrate\Plugin\MigrateSourceInterface;
-use Drupal\migrate\Plugin\MigrationInterface;
-use Drupal\migrate_drupal\Plugin\migrate\source\ContentEntity;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
 use Drupal\user\Entity\User;
 
@@ -28,13 +25,13 @@ use Drupal\user\Entity\User;
  */
 class ContentEntityTest extends KernelTestBase {
 
-  use EntityReferenceTestTrait;
+  use EntityReferenceFieldCreationTrait;
   use MediaTypeCreationTrait;
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'user',
     'migrate',
     'migrate_drupal',
@@ -90,19 +87,17 @@ class ContentEntityTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installEntitySchema('file');
     $this->installEntitySchema('media');
     $this->installEntitySchema('taxonomy_term');
-    $this->installEntitySchema('taxonomy_vocabulary');
     $this->installEntitySchema('user');
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('user', 'users_data');
     $this->installSchema('file', 'file_usage');
     $this->installSchema('node', ['node_access']);
-    $this->installConfig($this->modules);
+    $this->installConfig(static::$modules);
 
     ConfigurableLanguage::createFromLangcode('fr')->save();
 
@@ -130,6 +125,7 @@ class ContentEntityTest extends KernelTestBase {
       ['target_bundles' => [$this->vocabulary]],
       FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     );
+
     // Create a term reference field on user.
     $this->createEntityReferenceField(
       'user',
@@ -142,13 +138,21 @@ class ContentEntityTest extends KernelTestBase {
       FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
     );
 
-    // Create some data.
+    // Create a node, with data in a term reference field, and then add a French
+    // translation of the node.
     $this->user = User::create([
       'name' => 'user123',
       'uid' => 1,
       'mail' => 'example@example.com',
     ]);
     $this->user->save();
+
+    // Add the anonymous user so we can test later that it is not provided in a
+    // source row.
+    User::create([
+      'name' => 'anon',
+      'uid' => 0,
+    ])->save();
 
     $term = Term::create([
       'vid' => $this->vocabulary,
@@ -166,71 +170,11 @@ class ContentEntityTest extends KernelTestBase {
     ]);
     $node->save();
     $node->addTranslation('fr', [
-      'title' => 'Pommes',
+      'title' => 'fr - Apples',
       $this->fieldName => $term->id(),
     ])->save();
 
     $this->migrationPluginManager = $this->container->get('plugin.manager.migration');
-  }
-
-  /**
-   * Tests the constructor for missing entity_type.
-   */
-  public function testConstructorEntityTypeMissing() {
-    $migration = $this->prophesize(MigrationInterface::class)->reveal();
-    $configuration = [];
-    $plugin_definition = [
-      'entity_type' => '',
-    ];
-    $this->expectException(InvalidPluginDefinitionException::class);
-    $this->expectExceptionMessage('Missing required "entity_type" definition.');
-    ContentEntity::create($this->container, $configuration, 'content_entity', $plugin_definition, $migration);
-  }
-
-  /**
-   * Tests the constructor for non content entity.
-   */
-  public function testConstructorNonContentEntity() {
-    $migration = $this->prophesize(MigrationInterface::class)->reveal();
-    $configuration = [];
-    $plugin_definition = [
-      'entity_type' => 'node_type',
-    ];
-    $this->expectException(InvalidPluginDefinitionException::class);
-    $this->expectExceptionMessage('The entity type (node_type) is not supported. The "content_entity" source plugin only supports content entities.');
-    ContentEntity::create($this->container, $configuration, 'content_entity:node_type', $plugin_definition, $migration);
-  }
-
-  /**
-   * Tests the constructor for not bundleable entity.
-   */
-  public function testConstructorNotBundable() {
-    $migration = $this->prophesize(MigrationInterface::class)->reveal();
-    $configuration = [
-      'bundle' => 'foo',
-    ];
-    $plugin_definition = [
-      'entity_type' => 'user',
-    ];
-    $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('A bundle was provided but the entity type (user) is not bundleable');
-    ContentEntity::create($this->container, $configuration, 'content_entity:user', $plugin_definition, $migration);
-  }
-
-  /**
-   * Tests the constructor for invalid entity bundle.
-   */
-  public function testConstructorInvalidBundle() {
-    $migration = $this->prophesize(MigrationInterface::class)->reveal();
-    $configuration = [
-      'bundle' => 'foo',
-    ];
-    $plugin_definition = [
-      'entity_type' => 'node',
-    ];
-    $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('The provided bundle (foo) is not valid for the (node) entity type.');
-    ContentEntity::create($this->container, $configuration, 'content_entity:node', $plugin_definition, $migration);
   }
 
   /**
@@ -240,8 +184,10 @@ class ContentEntityTest extends KernelTestBase {
    *   The source plugin.
    * @param array $configuration
    *   The source plugin configuration (Nope, no getter available).
+   *
+   * @internal
    */
-  protected function assertIds(MigrateSourceInterface $source, array $configuration) {
+  protected function assertIds(MigrateSourceInterface $source, array $configuration): void {
     $ids = $source->getIds();
     [, $entity_type_id] = explode(PluginBase::DERIVATIVE_SEPARATOR, $source->getPluginId());
     $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
@@ -273,6 +219,9 @@ class ContentEntityTest extends KernelTestBase {
     $user_source = $migration->getSourcePlugin();
     $this->assertSame('users', $user_source->__toString());
     if (!$configuration['include_translations']) {
+      // Confirm that the anonymous user is in the source database but not
+      // included in the rows returned by the content_entity.
+      $this->assertNotNull(User::load(0));
       $this->assertEquals(1, $user_source->count());
     }
     $this->assertIds($user_source, $configuration);
@@ -371,7 +320,7 @@ class ContentEntityTest extends KernelTestBase {
       }
       $this->assertEquals('fr', $values['langcode']);
       $this->assertEquals(1, $values['status'][0]['value']);
-      $this->assertEquals('Pommes', $values['title'][0]['value']);
+      $this->assertEquals('fr - Apples', $values['title'][0]['value']);
       $this->assertEquals(0, $values['default_langcode'][0]['value']);
       $this->assertEquals(1, $values['field_entity_reference'][0]['target_id']);
     }
@@ -463,16 +412,14 @@ class ContentEntityTest extends KernelTestBase {
     $values = $term_source->current()->getSource();
     $this->assertEquals($this->vocabulary, $values['vid'][0]['target_id']);
     $this->assertEquals(1, $values['tid']);
-    // @TODO: Add test coverage for parent in
-    // https://www.drupal.org/project/drupal/issues/2940198
     $this->assertEquals('Apples', $values['name'][0]['value']);
+    $this->assertSame([['target_id' => '0']], $values['parent']);
     $term_source->next();
     $values = $term_source->current()->getSource();
     $this->assertEquals($this->vocabulary, $values['vid'][0]['target_id']);
     $this->assertEquals(2, $values['tid']);
-    // @TODO: Add test coverage for parent in
-    // https://www.drupal.org/project/drupal/issues/2940198
     $this->assertEquals('Granny Smith', $values['name'][0]['value']);
+    $this->assertSame([['target_id' => '1']], $values['parent']);
   }
 
   /**

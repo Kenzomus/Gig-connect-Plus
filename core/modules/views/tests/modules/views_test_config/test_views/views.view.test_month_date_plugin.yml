@@ -14,7 +14,7 @@ display:
   default:
     display_plugin: default
     id: default
-    display_title: Master
+    display_title: Default
     position: 0
     display_options:
       access:
@@ -133,7 +133,6 @@ display:
             query_param: month
             fallback: all
             multiple: or
-          default_argument_skip_url: false
           summary_options:
             base_path: ''
             count: true

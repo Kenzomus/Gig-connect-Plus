@@ -9,13 +9,14 @@ use Drupal\node\Entity\NodeType;
  * JSON:API integration test for the "NodeType" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class NodeTypeTest extends ResourceTestBase {
+class NodeTypeTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node'];
+  protected static $modules = ['node'];
 
   /**
    * {@inheritdoc}
@@ -106,6 +107,7 @@ class NodeTypeTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

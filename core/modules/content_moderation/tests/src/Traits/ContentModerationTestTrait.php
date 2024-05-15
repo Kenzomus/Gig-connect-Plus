@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\content_moderation\Traits;
 
 use Drupal\workflows\Entity\Workflow;
 use Drupal\workflows\WorkflowInterface;
 
 /**
- * Trait ContentModerationTestTraint.
+ * Provides functionality for testing content moderation.
  */
 trait ContentModerationTestTrait {
 

@@ -9,15 +9,16 @@ use Drupal\Core\Url;
  * JSON:API integration test for the "EntityFormMode" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class EntityFormModeTest extends ResourceTestBase {
+class EntityFormModeTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    *
    * @todo: Remove 'field_ui' when https://www.drupal.org/node/2867266.
    */
-  public static $modules = ['user', 'field_ui'];
+  protected static $modules = ['user', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -55,6 +56,7 @@ class EntityFormModeTest extends ResourceTestBase {
     $entity_form_mode = EntityFormMode::create([
       'id' => 'user.test',
       'label' => 'Test',
+      'description' => '',
       'targetEntityType' => 'user',
     ]);
     $entity_form_mode->save();
@@ -91,6 +93,7 @@ class EntityFormModeTest extends ResourceTestBase {
               'user',
             ],
           ],
+          'description' => '',
           'label' => 'Test',
           'langcode' => 'en',
           'status' => TRUE,
@@ -106,6 +109,7 @@ class EntityFormModeTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

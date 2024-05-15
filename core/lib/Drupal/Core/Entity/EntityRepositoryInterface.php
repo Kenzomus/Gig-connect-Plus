@@ -64,8 +64,9 @@ interface EntityRepositoryInterface {
    *   (optional) An associative array of arbitrary data that can be useful to
    *   determine the proper fallback sequence.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
-   *   An entity object for the translated data.
+   * @return \Drupal\Core\Entity\EntityInterface|null
+   *   An entity object for the translated data, or NULL if the requested
+   *   translation is missing, forbidden, or unavailable.
    *
    * @see \Drupal\Core\Language\LanguageManagerInterface::getFallbackCandidates()
    */
@@ -114,7 +115,7 @@ interface EntityRepositoryInterface {
    *   entity will be edited in keyed by fully qualified context ID. Defaults to
    *   the currently available contexts.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity object variants keyed by entity ID.
    *
    * @see getActive()
@@ -160,7 +161,7 @@ interface EntityRepositoryInterface {
    *   entity will be edited in keyed by fully qualified context ID. Defaults to
    *   the currently available contexts.
    *
-   * @return \Drupal\Core\Entity\EntityInterface
+   * @return \Drupal\Core\Entity\EntityInterface[]
    *   An array of entity object variants keyed by entity ID.
    *
    * @see getCanonical()

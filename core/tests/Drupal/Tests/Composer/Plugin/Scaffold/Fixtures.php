@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Composer\Plugin\Scaffold;
 
 use Composer\Console\Application;
@@ -291,7 +293,7 @@ class Fixtures {
   }
 
   /**
-   * Create an isolated cache directory for Composer
+   * Create an isolated cache directory for Composer.
    */
   public function createIsolatedComposerCacheDir() {
     $cacheDir = $this->mkTmpDir('composer-cache');

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\Version;
 
 use Drupal\Component\Version\Constraint;
@@ -147,19 +149,6 @@ class ConstraintTest extends TestCase {
       }
     }
     return $tests;
-  }
-
-  /**
-   * @covers ::toArray
-   * @group legacy
-   * @expectedDeprecation Drupal\Component\Version\Constraint::toArray() only exists to provide a backwards compatibility layer. See https://www.drupal.org/node/2756875
-   */
-  public function testToArray() {
-    $constraint = new Constraint('<8.x-4.x,>8.x-1.x', '8.x');
-    $this->assertSame([
-      ['op' => '<', 'version' => '4.x'],
-      ['op' => '>', 'version' => '2.x'],
-    ], $constraint->toArray());
   }
 
   /**

@@ -23,14 +23,14 @@ class ExcludedModulesEventSubscriberTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['system', 'config_test', 'config_exclude_test']);
     $this->setSetting('config_exclude_modules', ['config_test']);
   }
 
   /**
-   * Test excluding modules from the config export.
+   * Tests excluding modules from the config export.
    */
   public function testExcludedModules() {
     // Assert that config_test is in the active config.
@@ -63,8 +63,8 @@ class ExcludedModulesEventSubscriberTest extends KernelTestBase {
     $this->assertNotEmpty($import->createCollection($collection)->listAll('system.'));
     $this->assertArrayHasKey('config_test', $import->read('core.extension')['module']);
     $this->assertArrayHasKey('config_exclude_test', $import->read('core.extension')['module']);
-    $this->assertTrue($import->exists('system.menu.exclude_test'));
-    $this->assertTrue($import->exists('system.menu.indirect_exclude_test'));
+    $this->assertTrue($import->exists('system.menu.exclude-test'));
+    $this->assertTrue($import->exists('system.menu.indirect-exclude-test'));
 
     $this->assertEquals($active->read('core.extension'), $import->read('core.extension'));
     $this->assertEquals($active->listAll(), $import->listAll());

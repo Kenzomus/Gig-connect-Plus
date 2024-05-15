@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Plugin\Context;
 
 use Drupal\Core\Cache\NullBackend;
@@ -25,7 +27,7 @@ class ContextDefinitionIsSatisfiedTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $namespaces = new \ArrayObject([

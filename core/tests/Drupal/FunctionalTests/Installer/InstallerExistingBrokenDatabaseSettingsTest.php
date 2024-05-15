@@ -35,7 +35,9 @@ class InstallerExistingBrokenDatabaseSettingsTest extends InstallerTestBase {
     $connection_info['default']['driver'] = 'DrivertestMysqlDeprecatedVersion';
     $namespace = 'Drupal\\driver_test\\Driver\\Database\\DrivertestMysqlDeprecatedVersion';
     $connection_info['default']['namespace'] = $namespace;
-    $connection_info['default']['autoload'] = Database::findDriverAutoloadDirectory($namespace, \Drupal::root());
+    $connection_info['default']['autoload'] = \Drupal::service('extension.list.database_driver')
+      ->get($namespace)
+      ->getAutoloadInfo()['autoload'];
 
     $this->settings['databases']['default'] = (object) [
       'value' => $connection_info,
@@ -53,6 +55,15 @@ class InstallerExistingBrokenDatabaseSettingsTest extends InstallerTestBase {
   /**
    * {@inheritdoc}
    */
+  protected function setUpRequirementsProblem() {
+    // The parent method asserts that there are no requirements errors, but
+    // this test expects a requirements error in the test method below.
+    // Therefore, we override this method to suppress the parent's assertions.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUpSite() {
     // This form will never be reached.
   }
@@ -64,7 +75,7 @@ class InstallerExistingBrokenDatabaseSettingsTest extends InstallerTestBase {
     $this->assertSession()->titleEquals('Requirements problem | Drupal');
     $this->assertSession()->pageTextContains('Database settings');
     $this->assertSession()->pageTextContains('Resolve all issues below to continue the installation. For help configuring your database server,');
-    $this->assertSession()->pageTextContains('The database server version 5.5.2 is less than the minimum required version');
+    $this->assertSession()->pageTextContains('The database server version 10.2.31-MariaDB-1:10.2.31+maria~bionic-log is less than the minimum required version');
   }
 
 }

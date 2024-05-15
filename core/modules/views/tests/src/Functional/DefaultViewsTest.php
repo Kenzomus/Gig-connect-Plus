@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\views\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -13,7 +12,7 @@ use Drupal\views\Views;
 use Drupal\comment\Entity\Comment;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\taxonomy\Entity\Term;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
 /**
  * Tests the default views provided by views.
@@ -23,14 +22,14 @@ use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 class DefaultViewsTest extends ViewTestBase {
 
   use CommentTestTrait;
-  use EntityReferenceTestTrait;
+  use EntityReferenceFieldCreationTrait;
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'views',
     'node',
     'search',
@@ -56,8 +55,11 @@ class DefaultViewsTest extends ViewTestBase {
     'glossary' => ['all'],
   ];
 
-  protected function setUp($import_test_views = TRUE) {
-    parent::setUp($import_test_views);
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp($import_test_views = TRUE, $modules = []): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->drupalPlaceBlock('page_title_block');
 
@@ -67,7 +69,7 @@ class DefaultViewsTest extends ViewTestBase {
     $vocabulary = Vocabulary::create([
       'name' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
-      'vid' => mb_strtolower($this->randomMachineName()),
+      'vid' => $this->randomMachineName(),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'help' => '',
       'nodes' => ['page' => 'page'],
@@ -76,7 +78,7 @@ class DefaultViewsTest extends ViewTestBase {
     $vocabulary->save();
 
     // Create a field.
-    $field_name = mb_strtolower($this->randomMachineName());
+    $field_name = $this->randomMachineName();
 
     $handler_settings = [
       'target_bundles' => [
@@ -132,7 +134,7 @@ class DefaultViewsTest extends ViewTestBase {
   }
 
   /**
-   * Test that all Default views work as expected.
+   * Tests that all Default views work as expected.
    */
   public function testDefaultViews() {
     // Get all default views.
@@ -150,14 +152,11 @@ class DefaultViewsTest extends ViewTestBase {
           $view->preExecute($this->viewArgMap[$name]);
         }
 
-        $this->assert(TRUE, new FormattableMarkup('View @view will be executed.', ['@view' => $view->storage->id()]));
         $view->execute();
 
-        $tokens = ['@name' => $name, '@display_id' => $display_id];
-        $this->assertTrue($view->executed, new FormattableMarkup('@name:@display_id has been executed.', $tokens));
+        $this->assertTrue($view->executed, "$name:$display_id has been executed.");
 
-        $count = count($view->result);
-        $this->assertTrue($count > 0, new FormattableMarkup('@count results returned', ['@count' => $count]));
+        $this->assertNotEmpty($view->result);
         $view->destroy();
       }
     }

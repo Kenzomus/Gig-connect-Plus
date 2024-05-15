@@ -50,7 +50,8 @@ services:
   jsonapi.normalization_cacher:
     class: Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher
     calls:
-      - ['setRenderCache', ['@render_cache']]
+      - ['setVariationCache', ['@variation_cache.jsonapi_normalizations']]
+      - ['setRequestStack', ['@request_stack']]
     tags:
       - { name: event_subscriber }
   serializer.normalizer.content_entity.jsonapi:
@@ -70,6 +71,7 @@ services:
       - { name: jsonapi_normalizer }
   serializer.normalizer.link_collection.jsonapi:
     class: Drupal\jsonapi\Normalizer\LinkCollectionNormalizer
+    arguments: ['@current_user']
     tags:
       - { name: jsonapi_normalizer }
   serializer.normalizer.relationship.jsonapi:
@@ -83,18 +85,21 @@ services:
   jsonapi.resource_type.repository:
     class: Drupal\jsonapi\ResourceType\ResourceTypeRepository
     arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@entity_field.manager', '@cache.jsonapi_resource_types', '@event_dispatcher']
+  Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface: '@jsonapi.resource_type.repository'
   jsonapi.route_enhancer:
     class: Drupal\jsonapi\Routing\RouteEnhancer
     tags:
       - { name: route_enhancer }
   jsonapi.field_resolver:
     class: Drupal\jsonapi\Context\FieldResolver
-    arguments: ['@entity_type.manager', '@entity_field.manager', '@entity_type.bundle.info', '@jsonapi.resource_type.repository', '@module_handler']
+    arguments: ['@entity_type.manager', '@entity_field.manager', '@entity_type.bundle.info', '@jsonapi.resource_type.repository', '@module_handler', '@current_user']
+  Drupal\jsonapi\Context\FieldResolver: '@jsonapi.field_resolver'
   jsonapi.include_resolver:
     class: Drupal\jsonapi\IncludeResolver
     arguments:
       - '@entity_type.manager'
       - '@jsonapi.entity_access_checker'
+  Drupal\jsonapi\IncludeResolver: '@jsonapi.include_resolver'
   paramconverter.jsonapi.entity_uuid:
     parent: paramconverter.entity
     class: Drupal\jsonapi\ParamConverter\EntityUuidConverter
@@ -138,7 +143,11 @@ services:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
       - { name: cache.bin }
-    factory: cache_factory:get
+    factory: ['@cache_factory', 'get']
+    arguments: [jsonapi_normalizations]
+  variation_cache.jsonapi_normalizations:
+    class: Drupal\Core\Cache\VariationCacheInterface
+    factory: ['@variation_cache_factory', 'get']
     arguments: [jsonapi_normalizations]
 
   # Route filter.
@@ -155,15 +164,14 @@ services:
     public: false
     arguments: ['@jsonapi.resource_type.repository', '@router.no_access_checks', '@current_user', '@entity.repository']
     calls:
-      - [setNodeRevisionAccessCheck, ['@?access_check.node.revision']] # This is only injected when the service is available.
-      - [setMediaRevisionAccessCheck, ['@?access_check.media.revision']] # This is only injected when the service is available.
       # This is a temporary measure. JSON:API should not need to be aware of the Content Moderation module.
       - [setLatestRevisionCheck, ['@?access_check.latest_revision']] # This is only injected when the service is available.
-  access_check.jsonapi.relationship_field_access:
-    class: Drupal\jsonapi\Access\RelationshipFieldAccess
+  Drupal\jsonapi\Access\EntityAccessChecker: '@jsonapi.entity_access_checker'
+  access_check.jsonapi.relationship_route_access:
+    class: Drupal\jsonapi\Access\RelationshipRouteAccessCheck
     arguments: ['@jsonapi.entity_access_checker']
     tags:
-      - { name: access_check, applies_to: _jsonapi_relationship_field_access, needs_incoming_request: TRUE }
+      - { name: access_check, applies_to: _jsonapi_relationship_route_access }
 
   # Route filters.
   method_filter.jsonapi:
@@ -187,6 +195,7 @@ services:
       - '@jsonapi.serializer'
       - '@datetime.time'
       - '@current_user'
+  Drupal\jsonapi\Controller\EntityResource: '@jsonapi.entity_resource'
   jsonapi.file_upload:
     class: Drupal\jsonapi\Controller\FileUpload
     arguments:
@@ -194,6 +203,7 @@ services:
       - '@entity_field.manager'
       - '@jsonapi.file.uploader.field'
       - '@http_kernel'
+  Drupal\jsonapi\Controller\FileUpload: '@jsonapi.file_upload'
 
   # Event subscribers.
   jsonapi.custom_query_parameter_names_validator.subscriber:
@@ -207,11 +217,16 @@ services:
       - { name: event_subscriber }
   jsonapi.resource_response_validator.subscriber:
     class: Drupal\jsonapi\EventSubscriber\ResourceResponseValidator
-    arguments: ['@logger.channel.jsonapi', '@module_handler', '@app.root']
+    arguments: ['@logger.channel.jsonapi', '@module_handler', '%app.root%']
     calls:
       - [setValidator, []]
     tags:
       - { name: event_subscriber, priority: 1000 }
+  jsonapi.maintenance_mode_subscriber:
+    class: Drupal\jsonapi\EventSubscriber\JsonapiMaintenanceModeSubscriber
+    arguments: ['@maintenance_mode', '@config.factory']
+    tags:
+      - { name: event_subscriber }
 
   # Revision management.
   jsonapi.version_negotiator:
@@ -219,6 +234,7 @@ services:
     public: false
     tags:
       - { name: service_collector, tag: jsonapi_version_negotiator, call: addVersionNegotiator }
+  Drupal\jsonapi\Revisions\VersionNegotiator: '@jsonapi.version_negotiator'
   jsonapi.version_negotiator.default:
     arguments: ['@entity_type.manager']
     public: false
@@ -241,13 +257,9 @@ services:
     tags:
       - { name: route_enhancer }
 
-  # Deprecated services.
-  serializer.normalizer.htt_exception.jsonapi:
-    alias: serializer.normalizer.http_exception.jsonapi
-    deprecated: The "%service_id%" service is deprecated. You should use the 'serializer.normalizer.http_exception.jsonapi' service instead.
-
   # @todo Remove once https://www.drupal.org/project/drupal/issues/2940383 lands.
   jsonapi.file.uploader.field:
     class: Drupal\jsonapi\Controller\TemporaryJsonapiFileFieldUploader
     public: false
-    arguments: ['@logger.channel.file', '@file_system', '@file.mime_type.guesser', '@token', '@lock', '@config.factory']
+    arguments: ['@logger.channel.file', '@file_system', '@file.mime_type.guesser', '@token', '@lock', '@config.factory', '@event_dispatcher', '@file.validator']
+  Drupal\jsonapi\Controller\TemporaryJsonapiFileFieldUploader: '@jsonapi.file.uploader.field'

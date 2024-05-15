@@ -28,7 +28,7 @@ class AliasTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // The alias whitelist expects that the menu path roots are set by a
@@ -36,6 +36,250 @@ class AliasTest extends KernelTestBase {
     \Drupal::state()->set('router.path_roots', ['user', 'admin']);
 
     $this->installEntitySchema('path_alias');
+  }
+
+  /**
+   * @covers ::preloadPathAlias
+   */
+  public function testPreloadPathAlias() {
+    $path_alias_repository = $this->container->get('path_alias.repository');
+
+    // Every interesting language combination:
+    // Just unspecified.
+    $this->createPathAlias('/und/src', '/und/alias', LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    // Just a single language.
+    $this->createPathAlias('/en/src', '/en/alias', 'en');
+    // A single language, plus unspecified.
+    $this->createPathAlias('/en-und/src', '/en-und/und', LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    $this->createPathAlias('/en-und/src', '/en-und/en', 'en');
+    // Multiple languages.
+    $this->createPathAlias('/en-xx-lolspeak/src', '/en-xx-lolspeak/en', 'en');
+    $this->createPathAlias('/en-xx-lolspeak/src', '/en-xx-lolspeak/xx-lolspeak', 'xx-lolspeak');
+    // A duplicate alias for the same path. This is later, so should be
+    // preferred.
+    $this->createPathAlias('/en-xx-lolspeak/src', '/en-xx-lolspeak/en-dup', 'en');
+    // Multiple languages, plus unspecified.
+    $this->createPathAlias('/en-xx-lolspeak-und/src', '/en-xx-lolspeak-und/und', LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    $this->createPathAlias('/en-xx-lolspeak-und/src', '/en-xx-lolspeak-und/en', 'en');
+    $this->createPathAlias('/en-xx-lolspeak-und/src', '/en-xx-lolspeak-und/xx-lolspeak', 'xx-lolspeak');
+
+    // Queries for unspecified language aliases.
+    // Ask for an empty array, get all results.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-und/src' => '/en-und/und',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/und',
+      ],
+      $path_alias_repository->preloadPathAlias([], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    // Ask for nonexistent source.
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/nonexistent'], LanguageInterface::LANGCODE_NOT_SPECIFIED));
+    // Ask for each saved source, individually.
+    $this->assertEquals(
+      ['/und/src' => '/und/alias'],
+      $path_alias_repository->preloadPathAlias(['/und/src'], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/en/src'], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    $this->assertEquals(
+      ['/en-und/src' => '/en-und/und'],
+      $path_alias_repository->preloadPathAlias(['/en-und/src'], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak/src'], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    $this->assertEquals(
+      ['/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/und'],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak-und/src'], LanguageInterface::LANGCODE_NOT_SPECIFIED)
+    );
+    // Ask for multiple sources, all that are known.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-und/src' => '/en-und/und',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/und',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/nonexistent',
+          '/und/src',
+          '/en/src',
+          '/en-und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        LanguageInterface::LANGCODE_NOT_SPECIFIED
+      )
+    );
+    // Ask for multiple sources, just a subset.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/und',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        LanguageInterface::LANGCODE_NOT_SPECIFIED
+      )
+    );
+
+    // Queries for English aliases.
+    // Ask for an empty array, get all results.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en/src' => '/en/alias',
+        '/en-und/src' => '/en-und/en',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/en-dup',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/en',
+      ],
+      $path_alias_repository->preloadPathAlias([], 'en')
+    );
+    // Ask for nonexistent source.
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/nonexistent'], 'en'));
+    // Ask for each saved source, individually.
+    $this->assertEquals(
+      ['/und/src' => '/und/alias'],
+      $path_alias_repository->preloadPathAlias(['/und/src'], 'en')
+    );
+    $this->assertEquals(
+      ['/en/src' => '/en/alias'],
+      $path_alias_repository->preloadPathAlias(['/en/src'], 'en')
+    );
+    $this->assertEquals(
+      ['/en-und/src' => '/en-und/en'],
+      $path_alias_repository->preloadPathAlias(['/en-und/src'], 'en')
+    );
+    $this->assertEquals(
+      ['/en-xx-lolspeak/src' => '/en-xx-lolspeak/en-dup'],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak/src'], 'en')
+    );
+    $this->assertEquals(
+      ['/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/en'],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak-und/src'], 'en')
+    );
+    // Ask for multiple sources, all that are known.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en/src' => '/en/alias',
+        '/en-und/src' => '/en-und/en',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/en-dup',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/en',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/nonexistent',
+          '/und/src',
+          '/en/src',
+          '/en-und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        'en'
+      )
+    );
+    // Ask for multiple sources, just a subset.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/en-dup',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/en',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        'en'
+      )
+    );
+
+    // Queries for xx-lolspeak aliases.
+    // Ask for an empty array, get all results.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-und/src' => '/en-und/und',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/xx-lolspeak',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/xx-lolspeak',
+      ],
+      $path_alias_repository->preloadPathAlias([], 'xx-lolspeak')
+    );
+    // Ask for nonexistent source.
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/nonexistent'], 'xx-lolspeak'));
+    // Ask for each saved source, individually.
+    $this->assertEquals(
+      ['/und/src' => '/und/alias'],
+      $path_alias_repository->preloadPathAlias(['/und/src'], 'xx-lolspeak')
+    );
+    $this->assertEquals(
+      [],
+      $path_alias_repository->preloadPathAlias(['/en/src'], 'xx-lolspeak')
+    );
+    $this->assertEquals(
+      ['/en-und/src' => '/en-und/und'],
+      $path_alias_repository->preloadPathAlias(['/en-und/src'], 'xx-lolspeak')
+    );
+    $this->assertEquals(
+      ['/en-xx-lolspeak/src' => '/en-xx-lolspeak/xx-lolspeak'],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak/src'], 'xx-lolspeak')
+    );
+    $this->assertEquals(
+      ['/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/xx-lolspeak'],
+      $path_alias_repository->preloadPathAlias(['/en-xx-lolspeak-und/src'], 'xx-lolspeak')
+    );
+    // Ask for multiple sources, all that are known.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-und/src' => '/en-und/und',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/xx-lolspeak',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/xx-lolspeak',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/nonexistent',
+          '/und/src',
+          '/en/src',
+          '/en-und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        'xx-lolspeak'
+      )
+    );
+    // Ask for multiple sources, just a subset.
+    $this->assertEquals(
+      [
+        '/und/src' => '/und/alias',
+        '/en-xx-lolspeak/src' => '/en-xx-lolspeak/xx-lolspeak',
+        '/en-xx-lolspeak-und/src' => '/en-xx-lolspeak-und/xx-lolspeak',
+      ],
+      $path_alias_repository->preloadPathAlias(
+        [
+          '/und/src',
+          '/en-xx-lolspeak/src',
+          '/en-xx-lolspeak-und/src',
+        ],
+        'xx-lolspeak'
+      )
+    );
   }
 
   /**
@@ -153,7 +397,7 @@ class AliasTest extends KernelTestBase {
 
     // Destruct the whitelist so that the caches are written.
     $whitelist->destruct();
-    $this->assertEqual($memoryCounterBackend->getCounter('set', 'path_alias_whitelist'), 1);
+    $this->assertEquals(1, $memoryCounterBackend->getCounter('set', 'path_alias_whitelist'));
     $memoryCounterBackend->resetCounter();
 
     // Re-initialize the whitelist using the same cache backend, should load
@@ -162,13 +406,13 @@ class AliasTest extends KernelTestBase {
     $this->assertNull($whitelist->get('user'));
     $this->assertTrue($whitelist->get('admin'));
     $this->assertNull($whitelist->get($this->randomMachineName()));
-    $this->assertEqual($memoryCounterBackend->getCounter('get', 'path_alias_whitelist'), 1);
-    $this->assertEqual($memoryCounterBackend->getCounter('set', 'path_alias_whitelist'), 0);
+    $this->assertEquals(1, $memoryCounterBackend->getCounter('get', 'path_alias_whitelist'));
+    $this->assertEquals(0, $memoryCounterBackend->getCounter('set', 'path_alias_whitelist'));
 
     // Destruct the whitelist, should not attempt to write the cache again.
     $whitelist->destruct();
-    $this->assertEqual($memoryCounterBackend->getCounter('get', 'path_alias_whitelist'), 1);
-    $this->assertEqual($memoryCounterBackend->getCounter('set', 'path_alias_whitelist'), 0);
+    $this->assertEquals(1, $memoryCounterBackend->getCounter('get', 'path_alias_whitelist'));
+    $this->assertEquals(0, $memoryCounterBackend->getCounter('set', 'path_alias_whitelist'));
   }
 
   /**
@@ -194,7 +438,7 @@ class AliasTest extends KernelTestBase {
 
     // Destruct the whitelist so it persists its cache.
     $whitelist->destruct();
-    $this->assertEquals($memoryCounterBackend->getCounter('set', 'path_alias_whitelist'), 1);
+    $this->assertEquals(1, $memoryCounterBackend->getCounter('set', 'path_alias_whitelist'));
     // Cache data should have data for 'user' and 'admin', even though just
     // 'admin' was looked up. This is because the cache is primed with all
     // menu router base paths.
@@ -217,7 +461,7 @@ class AliasTest extends KernelTestBase {
     // from underneath it and not save anything to cache, to protect from
     // cache corruption.
     $whitelist->destruct();
-    $this->assertEquals($memoryCounterBackend->getCounter('set', 'path_alias_whitelist'), 0);
+    $this->assertEquals(0, $memoryCounterBackend->getCounter('set', 'path_alias_whitelist'));
     $this->assertFalse($memoryCounterBackend->get('path_alias_whitelist'));
     $memoryCounterBackend->resetCounter();
   }

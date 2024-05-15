@@ -10,13 +10,14 @@ use Drupal\user\RoleInterface;
  * JSON:API integration test for the "Action" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class ActionTest extends ResourceTestBase {
+class ActionTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['user'];
+  protected static $modules = ['action'];
 
   /**
    * {@inheritdoc}
@@ -54,7 +55,7 @@ class ActionTest extends ResourceTestBase {
     $action = Action::create([
       'id' => 'user_add_role_action.' . RoleInterface::ANONYMOUS_ID,
       'type' => 'user',
-      'label' => t('Add the anonymous role to the selected users'),
+      'label' => 'Add the anonymous role to the selected users',
       'configuration' => [
         'rid' => RoleInterface::ANONYMOUS_ID,
       ],
@@ -112,6 +113,7 @@ class ActionTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

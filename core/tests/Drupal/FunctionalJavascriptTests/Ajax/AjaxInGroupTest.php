@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\FunctionalJavascriptTests\Ajax;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
@@ -24,7 +26,7 @@ class AjaxInGroupTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser(['access content']));
@@ -45,7 +47,7 @@ class AjaxInGroupTest extends WebDriverTestBase {
     $this->assertNotNull($checkbox_original, 'The checkbox_in_group is on the page.');
     $original_id = $checkbox_original->getAttribute('id');
 
-    // Triggers a AJAX request/response.
+    // Triggers an AJAX request/response.
     $checkbox_original->check();
 
     // The response contains a new nested "test group" form element, similar

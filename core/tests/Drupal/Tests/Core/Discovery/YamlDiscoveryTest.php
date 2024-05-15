@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Discovery;
 
 use Drupal\Component\FileCache\FileCacheFactory;
@@ -20,7 +22,7 @@ class YamlDiscoveryTest extends TestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     // Ensure that FileCacheFactory has a prefix.
     FileCacheFactory::setPrefix('prefix');
   }

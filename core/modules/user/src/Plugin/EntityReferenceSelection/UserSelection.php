@@ -3,7 +3,6 @@
 namespace Drupal\user\Plugin\EntityReferenceSelection;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
@@ -13,6 +12,7 @@ use Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -117,6 +117,9 @@ class UserSelection extends DefaultSelection {
         '_none' => $this->t('- None -'),
         'role' => $this->t('User role'),
       ],
+      // Use a form process callback to build #ajax property properly and also
+      // to avoid code duplication.
+      // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::fieldSettingsAjaxProcess()
       '#ajax' => TRUE,
       '#limit_validation_errors' => [],
       '#default_value' => $configuration['filter']['type'],
@@ -129,11 +132,15 @@ class UserSelection extends DefaultSelection {
     ];
 
     if ($configuration['filter']['type'] == 'role') {
+      $roles = Role::loadMultiple();
+      unset($roles[RoleInterface::ANONYMOUS_ID]);
+      unset($roles[RoleInterface::AUTHENTICATED_ID]);
+      $roles = array_map(fn(RoleInterface $role) => $role->label(), $roles);
       $form['filter']['settings']['role'] = [
         '#type' => 'checkboxes',
         '#title' => $this->t('Restrict to the selected roles'),
         '#required' => TRUE,
-        '#options' => array_diff_key(user_role_names(TRUE), [RoleInterface::AUTHENTICATED_ID => RoleInterface::AUTHENTICATED_ID]),
+        '#options' => $roles,
         '#default_value' => $configuration['filter']['role'],
       ];
     }
@@ -235,17 +242,17 @@ class UserSelection extends DefaultSelection {
           // Re-add the condition and a condition on uid = 0 so that we end up
           // with a query in the form:
           // WHERE (name LIKE :name) OR (:anonymous_name LIKE :name AND uid = 0)
-          $or = new Condition('OR');
+          $or = $this->connection->condition('OR');
           $or->condition($condition['field'], $condition['value'], $condition['operator']);
           // Sadly, the Database layer doesn't allow us to build a condition
           // in the form ':placeholder = :placeholder2', because the 'field'
           // part of a condition is always escaped.
           // As a (cheap) workaround, we separately build a condition with no
           // field, and concatenate the field and the condition separately.
-          $value_part = new Condition('AND');
+          $value_part = $this->connection->condition('AND');
           $value_part->condition('anonymous_name', $condition['value'], $condition['operator']);
           $value_part->compile($this->connection, $query);
-          $or->condition((new Condition('AND'))
+          $or->condition(($this->connection->condition('AND'))
             ->where(str_replace($query->escapeField('anonymous_name'), ':anonymous_name', (string) $value_part), $value_part->arguments() + [':anonymous_name' => \Drupal::config('user.settings')->get('anonymous')])
             ->condition('base_table.uid', 0)
           );

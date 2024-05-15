@@ -10,13 +10,14 @@ use Drupal\node\Entity\NodeType;
  * JSON:API integration test for the "EntityFormDisplay" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class EntityFormDisplayTest extends ResourceTestBase {
+class EntityFormDisplayTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node'];
+  protected static $modules = ['node', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -173,6 +174,7 @@ class EntityFormDisplayTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

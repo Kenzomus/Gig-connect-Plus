@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\views\FunctionalJavascript;
 
 use Drupal\Core\Url;
@@ -22,12 +24,17 @@ class GlossaryViewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'node', 'views', 'views_test_config'];
+  protected static $modules = [
+    'language',
+    'node',
+    'views',
+    'views_test_config',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'starterkit_theme';
 
   /**
    * @var array
@@ -38,10 +45,10 @@ class GlossaryViewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
-    ViewTestData::createTestViews(get_class($this), ['views_test_config']);
+    ViewTestData::createTestViews(static::class, ['views_test_config']);
 
     // Create a Content type and some test nodes with titles that start with
     // different letters.
@@ -95,7 +102,7 @@ class GlossaryViewTest extends WebDriverTestBase {
   }
 
   /**
-   * Test that the glossary also works on a language prefixed URL.
+   * Tests that the glossary also works on a language prefixed URL.
    */
   public function testGlossaryLanguagePrefix() {
     ConfigurableLanguage::createFromLangcode('nl')->save();

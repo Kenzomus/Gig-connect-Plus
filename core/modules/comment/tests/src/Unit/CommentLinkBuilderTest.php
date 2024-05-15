@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\comment\Unit;
 
 use Drupal\comment\CommentLinkBuilder;
@@ -68,7 +70,9 @@ class CommentLinkBuilderTest extends UnitTestCase {
   /**
    * Prepares mocks for the test.
    */
-  protected function setUp() {
+  protected function setUp(): void {
+    parent::setUp();
+
     $this->commentManager = $this->createMock('\Drupal\comment\CommentManagerInterface');
     $this->stringTranslation = $this->getStringTranslationStub();
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
@@ -90,7 +94,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
   }
 
   /**
-   * Test the buildCommentedEntityLinks method.
+   * Tests the buildCommentedEntityLinks method.
    *
    * @param \Drupal\node\NodeInterface|\PHPUnit\Framework\MockObject\MockObject $node
    *   Mock node.
@@ -227,7 +231,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
             // If the view mode is teaser, or the user can access comments and
             // comments exist or the form is on a separate page.
             if ($combination['view_mode'] == 'teaser' || ($combination['has_access_comments'] && $combination['comment_count']) || $combination['form_location'] == CommentItemInterface::FORM_SEPARATE_PAGE) {
-              // There should be a add comment link.
+              // There should be an add comment link.
               $expected['comment-add'] = ['title' => 'Add new comment'];
               if ($combination['form_location'] == CommentItemInterface::FORM_BELOW) {
                 // On the same page.
@@ -313,9 +317,6 @@ class CommentLinkBuilderTest extends UnitTestCase {
     $node->expects($this->any())
       ->method('toUrl')
       ->willReturn($url);
-    $node->expects($this->any())
-      ->method('url')
-      ->willReturn(['route_name' => 'node.view']);
 
     return $node;
   }
@@ -326,7 +327,7 @@ namespace Drupal\comment;
 
 if (!function_exists('history_read')) {
 
-  function history_read() {
+  function history_read($nid) {
     return 0;
   }
 

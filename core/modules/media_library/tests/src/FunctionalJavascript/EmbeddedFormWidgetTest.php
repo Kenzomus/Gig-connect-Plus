@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\media_library\FunctionalJavascript;
 
 use Drupal\field\Entity\FieldConfig;
@@ -33,7 +35,7 @@ class EmbeddedFormWidgetTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $display_repository = $this->container->get('entity_display.repository');
@@ -90,7 +92,7 @@ class EmbeddedFormWidgetTest extends WebDriverTestBase {
   }
 
   /**
-   * Test media inside another widget that validates too enthusiastically.
+   * Tests media inside another widget that validates too enthusiastically.
    *
    * @dataProvider insertionReselectionProvider
    */

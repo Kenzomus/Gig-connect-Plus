@@ -9,13 +9,14 @@ use Drupal\filter\Entity\FilterFormat;
  * JSON:API integration test for the "FilterFormat" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class FilterFormatTest extends ResourceTestBase {
+class FilterFormatTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['filter'];
+  protected static $modules = ['filter'];
 
   /**
    * {@inheritdoc}
@@ -120,6 +121,7 @@ class FilterFormatTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

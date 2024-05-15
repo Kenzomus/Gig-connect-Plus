@@ -2,6 +2,8 @@
 
 namespace Drupal\Core\Theme;
 
+use Drupal\Core\Routing\RouteMatchInterface;
+
 /**
  * Provides a high level access to the active theme and methods to use it.
  *
@@ -16,8 +18,9 @@ interface ThemeManagerInterface {
    * See the @link themeable Default theme implementations topic @endlink for
    * details.
    *
-   * @param string $hook
-   *   The name of the theme hook to call.
+   * @param string|string[] $hook
+   *   The name of the theme hook to call or an array of names of theme hooks to
+   *   call.
    * @param array $variables
    *   An associative array of theme variables.
    *
@@ -29,9 +32,12 @@ interface ThemeManagerInterface {
   /**
    * Returns the active theme object.
    *
+   * @param \Drupal\Core\Routing\RouteMatchInterface|null $route_match
+   *   The route match.
+   *
    * @return \Drupal\Core\Theme\ActiveTheme
    */
-  public function getActiveTheme();
+  public function getActiveTheme(RouteMatchInterface $route_match = NULL);
 
   /**
    * Determines whether there is an active theme.

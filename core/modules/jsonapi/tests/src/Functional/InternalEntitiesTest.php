@@ -8,7 +8,7 @@ use Drupal\entity_test\Entity\EntityTestBundle;
 use Drupal\entity_test\Entity\EntityTestNoLabel;
 use Drupal\entity_test\Entity\EntityTestWithBundle;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
+use Drupal\Tests\field\Traits\EntityReferenceFieldCreationTrait;
 
 /**
  * Makes assertions about the JSON:API behavior for internal entities.
@@ -19,7 +19,7 @@ use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
  */
 class InternalEntitiesTest extends BrowserTestBase {
 
-  use EntityReferenceTestTrait;
+  use EntityReferenceFieldCreationTrait;
 
   /**
    * {@inheritdoc}
@@ -59,7 +59,7 @@ class InternalEntitiesTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->testUser = $this->drupalCreateUser([
       'view test entity',
@@ -83,7 +83,7 @@ class InternalEntitiesTest extends BrowserTestBase {
       'field_internal' => $this->internalEntity->id(),
     ]);
     $this->referencingEntity->save();
-    drupal_flush_all_caches();
+    \Drupal::service('router.builder')->rebuild();
   }
 
   /**

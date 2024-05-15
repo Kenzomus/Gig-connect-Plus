@@ -22,12 +22,12 @@ class PathValidatorTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['path', 'entity_test', 'system', 'user'];
+  protected static $modules = ['path', 'entity_test', 'system', 'user'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->setUpCurrentUser();
     $this->installEntitySchema('entity_test');
@@ -48,8 +48,9 @@ class PathValidatorTest extends KernelTestBase {
       'PUT',
       'PATCH',
       'DELETE',
-      // Used in CLI context.
-      NULL,
+      // NULL is used in CLI context which results in a request method of an
+      // empty string.
+      '',
       // If no request was even pushed onto the request stack, and hence.
       FALSE,
     ];
@@ -61,8 +62,10 @@ class PathValidatorTest extends KernelTestBase {
         }
         $this->container->set('router.request_context', new RequestContext());
       }
+      else {
+        $requestContext->setMethod($method);
+      }
 
-      $requestContext->setMethod($method);
       /** @var \Drupal\Core\Url $url */
       $url = $pathValidator->getUrlIfValidWithoutAccessCheck($entity->toUrl()->toString(TRUE)->getGeneratedUrl());
       $this->assertEquals($method, $requestContext->getMethod());

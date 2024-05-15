@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Routing;
 
 use Drupal\accept_header_routing_test\Routing\AcceptHeaderMatcher;
@@ -31,7 +33,7 @@ class AcceptHeaderMatcherTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->fixtures = new RoutingFixtures();

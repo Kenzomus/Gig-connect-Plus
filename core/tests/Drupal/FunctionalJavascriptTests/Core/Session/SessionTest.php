@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\FunctionalJavascriptTests\Core\Session;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
@@ -15,7 +17,7 @@ class SessionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_link_content', 'block'];
+  protected static $modules = ['menu_link_content', 'block'];
 
   /**
    * {@inheritdoc}
@@ -25,7 +27,7 @@ class SessionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $account = $this->drupalCreateUser();

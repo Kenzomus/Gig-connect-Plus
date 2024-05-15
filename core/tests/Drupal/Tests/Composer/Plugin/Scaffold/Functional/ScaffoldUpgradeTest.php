@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Composer\Plugin\Scaffold\Functional;
 
 use Composer\Util\Filesystem;
 use Drupal\Tests\Composer\Plugin\Scaffold\AssertUtilsTrait;
 use Drupal\Tests\Composer\Plugin\Scaffold\ExecTrait;
 use Drupal\Tests\Composer\Plugin\Scaffold\Fixtures;
-use Drupal\Tests\PhpunitCompatibilityTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  *
  * Upgrading a Composer plugin can be a dangerous operation. If the plugin
  * instantiates any classes during the activate method, and the plugin code
- * is subsequentially modified by a `composer update` operation, then any
+ * is subsequently modified by a `composer update` operation, then any
  * post-update hook (& etc.) may run with inconsistent code, leading to
  * runtime errors. This test ensures that it is possible to upgrade from the
  * last available stable 8.8.x tag to the current Scaffold plugin code (e.g. in
@@ -26,7 +27,6 @@ class ScaffoldUpgradeTest extends TestCase {
 
   use AssertUtilsTrait;
   use ExecTrait;
-  use PhpunitCompatibilityTrait;
 
   /**
    * The Fixtures object.
@@ -36,19 +36,26 @@ class ScaffoldUpgradeTest extends TestCase {
   protected $fixtures;
 
   /**
+   * The Fixtures directory.
+   *
+   * @var string
+   */
+  protected string $fixturesDir;
+
+  /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->fixtures = new Fixtures();
     $this->fixtures->createIsolatedComposerCacheDir();
   }
 
   /**
-   * Test upgrading the Composer Scaffold plugin.
+   * Tests upgrading the Composer Scaffold plugin.
    */
   public function testScaffoldUpgrade() {
     $composerVersionLine = exec('composer --version');
-    if (strpos($composerVersionLine, 'Composer version 2') !== FALSE) {
+    if (str_contains($composerVersionLine, 'Composer version 2')) {
       $this->markTestSkipped('We cannot run the scaffold upgrade test with Composer 2 until we have a stable version of drupal/core-composer-scaffold to start from that we can install with Composer 2.x.');
     }
     $this->fixturesDir = $this->fixtures->tmpDir($this->getName());

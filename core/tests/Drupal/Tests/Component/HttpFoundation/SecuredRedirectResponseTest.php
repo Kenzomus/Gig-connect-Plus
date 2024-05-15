@@ -1,9 +1,6 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Component\HttpFoundation\SecuredRedirectResponseTest.
- */
+declare(strict_types=1);
 
 namespace Drupal\Tests\Component\HttpFoundation;
 
@@ -21,7 +18,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 class SecuredRedirectResponseTest extends TestCase {
 
   /**
-   * Test copying of redirect response.
+   * Tests copying of redirect response.
    *
    * @covers ::createFromRedirectResponse
    * @covers ::fromResponse

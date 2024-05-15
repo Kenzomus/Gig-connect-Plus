@@ -20,7 +20,7 @@ class ImageStyleIntegrationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'image',
     'file',
     'field',
@@ -32,7 +32,7 @@ class ImageStyleIntegrationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
   }
@@ -43,15 +43,22 @@ class ImageStyleIntegrationTest extends KernelTestBase {
   public function testEntityDisplayDependency() {
     // Create two image styles.
     /** @var \Drupal\image\ImageStyleInterface $style */
-    $style = ImageStyle::create(['name' => 'main_style']);
+    $style = ImageStyle::create([
+      'name' => 'main_style',
+      'label' => 'Main',
+    ]);
     $style->save();
     /** @var \Drupal\image\ImageStyleInterface $replacement */
-    $replacement = ImageStyle::create(['name' => 'replacement_style']);
+    $replacement = ImageStyle::create([
+      'name' => 'replacement_style',
+      'label' => 'Replacement',
+    ]);
     $replacement->save();
 
-    // Create a node-type, named 'note'.
-    $node_type = NodeType::create(['type' => 'note']);
-    $node_type->save();
+    NodeType::create([
+      'type' => 'note',
+      'name' => 'Note',
+    ])->save();
 
     // Create an image field and attach it to the 'note' node-type.
     FieldStorageConfig::create([
@@ -130,12 +137,16 @@ class ImageStyleIntegrationTest extends KernelTestBase {
   public function testEntityDisplayDependencyRename() {
     // Create an image style.
     /** @var \Drupal\image\ImageStyleInterface $style */
-    $style = ImageStyle::create(['name' => 'main_style']);
+    $style = ImageStyle::create([
+      'name' => 'main_style',
+      'label' => 'Main',
+    ]);
     $style->save();
 
-    // Create a node-type, named 'note'.
-    $node_type = NodeType::create(['type' => 'note']);
-    $node_type->save();
+    NodeType::create([
+      'type' => 'note',
+      'name' => 'Note',
+    ])->save();
 
     // Create an image field and attach it to the 'note' node-type.
     FieldStorageConfig::create([

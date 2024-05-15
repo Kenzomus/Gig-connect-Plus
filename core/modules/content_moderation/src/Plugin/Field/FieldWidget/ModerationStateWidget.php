@@ -8,7 +8,6 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsSelectWidget;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\content_moderation\ModerationInformation;
 use Drupal\content_moderation\StateTransitionValidationInterface;
@@ -25,7 +24,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   }
  * )
  */
-class ModerationStateWidget extends OptionsSelectWidget implements ContainerFactoryPluginInterface {
+class ModerationStateWidget extends OptionsSelectWidget {
 
   /**
    * Current user service.
@@ -126,8 +125,10 @@ class ModerationStateWidget extends OptionsSelectWidget implements ContainerFact
     // The moderation state of the saved revision will be used to display the
     // current state as well determine the appropriate transitions.
     if (!$entity->isNew()) {
+      /** @var \Drupal\Core\Entity\RevisionableStorageInterface $storage */
+      $storage = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
       /** @var \Drupal\Core\Entity\ContentEntityInterface $original_entity */
-      $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($entity->getLoadedRevisionId());
+      $original_entity = $storage->loadRevision($entity->getLoadedRevisionId());
       if (!$entity->isDefaultTranslation() && $original_entity->hasTranslation($entity->language()->getId())) {
         $original_entity = $original_entity->getTranslation($entity->language()->getId());
       }
@@ -176,7 +177,7 @@ class ModerationStateWidget extends OptionsSelectWidget implements ContainerFact
         ],
       ],
     ];
-    $element['#element_validate'][] = [get_class($this), 'validateElement'];
+    $element['#element_validate'][] = [static::class, 'validateElement'];
 
     return $element;
   }

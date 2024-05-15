@@ -4,6 +4,8 @@ namespace Drupal\FunctionalTests\Routing;
 
 use Drupal\Tests\BrowserTestBase;
 
+// cspell:ignore ȅchȏ meΦω
+
 /**
  * Tests incoming path case insensitivity.
  *
@@ -14,7 +16,7 @@ class CaseInsensitivePathTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'views', 'node', 'system_test'];
+  protected static $modules = ['system', 'views', 'node', 'system_test'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +26,7 @@ class CaseInsensitivePathTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::state()->set('system_test.module_hidden', FALSE);
     $this->createContentType(['type' => 'page']);

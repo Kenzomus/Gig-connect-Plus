@@ -2,7 +2,6 @@
 
 namespace Drupal\KernelTests\Core\File;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 
@@ -36,7 +35,7 @@ class HtaccessTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->public = Settings::get('file_public_path') . '/test/public';
     $this->htaccessWriter = $this->container->get('file.htaccess_writer');
@@ -97,14 +96,16 @@ class HtaccessTest extends KernelTestBase {
    *   The URI of the file to check.
    * @param int $expected
    *   The expected file permissions; e.g., 0444.
+   *
+   * @internal
    */
-  protected function assertFilePermissions($uri, $expected) {
+  protected function assertFilePermissions(string $uri, int $expected): void {
     $actual = fileperms($uri) & 0777;
-    $this->assertSame($actual, $expected, new FormattableMarkup('@uri file permissions @actual are identical to @expected.', [
-      '@uri' => $uri,
-      '@actual' => 0 . decoct($actual),
-      '@expected' => 0 . decoct($expected),
-    ]));
+    $this->assertSame($actual, $expected, sprintf('%s file permissions %s are identical to %s.',
+      $uri,
+      0 . decoct($actual),
+      0 . decoct($expected),
+    ));
   }
 
 }

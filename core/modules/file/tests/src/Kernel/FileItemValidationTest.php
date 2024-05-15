@@ -20,7 +20,7 @@ class FileItemValidationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'file',
     'image',
     'entity_test',
@@ -39,14 +39,13 @@ class FileItemValidationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test');
     $this->installEntitySchema('user');
     $this->installEntitySchema('file');
     $this->installSchema('file', 'file_usage');
-    $this->installSchema('system', 'sequences');
 
     $this->user = User::create([
       'name' => 'username',

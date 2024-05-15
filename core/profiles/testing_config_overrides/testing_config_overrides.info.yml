@@ -9,4 +9,5 @@ hidden: true
 install:
   - action
   - language
-  - tour
+  - entity_test_install
+  - testing_config_overrides_module

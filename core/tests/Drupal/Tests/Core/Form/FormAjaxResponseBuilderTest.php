@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\Form;
 
 use Drupal\Core\Ajax\AjaxResponse;
@@ -35,7 +37,7 @@ class FormAjaxResponseBuilderTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->renderer = $this->createMock('Drupal\Core\Render\MainContent\MainContentRendererInterface');
     $this->routeMatch = $this->createMock('Drupal\Core\Routing\RouteMatchInterface');

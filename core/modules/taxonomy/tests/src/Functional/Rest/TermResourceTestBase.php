@@ -5,18 +5,15 @@ namespace Drupal\Tests\taxonomy\Functional\Rest;
 use Drupal\Core\Cache\Cache;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
-use Drupal\Tests\rest\Functional\BcTimestampNormalizerUnixTestTrait;
 use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
 use GuzzleHttp\RequestOptions;
 
 abstract class TermResourceTestBase extends EntityResourceTestBase {
 
-  use BcTimestampNormalizerUnixTestTrait;
-
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'path'];
+  protected static $modules = ['taxonomy', 'path'];
 
   /**
    * {@inheritdoc}
@@ -192,7 +189,10 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
         ],
       ],
       'changed' => [
-        $this->formatExpectedTimestampItemValues($this->entity->getChangedTime()),
+        [
+          'value' => (new \DateTime())->setTimestamp($this->entity->getChangedTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'format' => \DateTime::RFC3339,
+        ],
       ],
       'default_langcode' => [
         [
@@ -212,10 +212,14 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
         ],
       ],
       'revision_created' => [
-        $this->formatExpectedTimestampItemValues((int) $this->entity->getRevisionCreationTime()),
+        [
+          'value' => (new \DateTime())->setTimestamp((int) $this->entity->getRevisionCreationTime())
+            ->setTimezone(new \DateTimeZone('UTC'))
+            ->format(\DateTime::RFC3339),
+          'format' => \DateTime::RFC3339,
+        ],
       ],
       'revision_user' => [],
-      'revision_log_message' => [],
       'revision_translation_affected' => [
         [
           'value' => TRUE,
@@ -236,12 +240,12 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
       ],
       'name' => [
         [
-          'value' => 'Dramallama',
+          'value' => 'Drama llama',
         ],
       ],
       'description' => [
         [
-          'value' => 'Dramallamas are the coolest camelids.',
+          'value' => 'Drama llamas are the coolest camelids.',
           'format' => NULL,
         ],
       ],
@@ -252,10 +256,6 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   protected function getExpectedUnauthorizedAccessMessage($method) {
-    if ($this->config('rest.settings')->get('bc_entity_resource_permissions')) {
-      return parent::getExpectedUnauthorizedAccessMessage($method);
-    }
-
     switch ($method) {
       case 'GET':
         return "The 'access content' permission is required and the taxonomy term must be published.";
@@ -336,7 +336,7 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
       ->setName('Lamoids')
       ->save();
     Term::create(['vid' => Vocabulary::load('camelids')->id()])
-      ->setName('Wimoids')
+      ->setName('Camels')
       ->save();
 
     // Modify the entity under test to use the provided parent terms.

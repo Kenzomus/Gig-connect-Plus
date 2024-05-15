@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\user\Unit;
 
 use Drupal\Core\Config\ImmutableConfig;
@@ -60,7 +62,7 @@ class UserRegistrationResourceTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->logger = $this->prophesize(LoggerInterface::class)->reveal();

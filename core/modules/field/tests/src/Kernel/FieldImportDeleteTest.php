@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\field\Kernel;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -23,7 +22,7 @@ class FieldImportDeleteTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['field_test_config'];
+  protected static $modules = ['field_test_config'];
 
   /**
    * Tests deleting field storages and fields as part of config import.
@@ -69,11 +68,11 @@ class FieldImportDeleteTest extends FieldKernelTestBase {
     $active = $this->container->get('config.storage');
     $sync = $this->container->get('config.storage.sync');
     $this->copyConfig($active, $sync);
-    $this->assertTrue($sync->delete($field_storage_config_name), new FormattableMarkup('Deleted field storage: @field_storage', ['@field_storage' => $field_storage_config_name]));
-    $this->assertTrue($sync->delete($field_storage_config_name_2), new FormattableMarkup('Deleted field storage: @field_storage', ['@field_storage' => $field_storage_config_name_2]));
-    $this->assertTrue($sync->delete($field_config_name), new FormattableMarkup('Deleted field: @field', ['@field' => $field_config_name]));
-    $this->assertTrue($sync->delete($field_config_name_2a), new FormattableMarkup('Deleted field: @field', ['@field' => $field_config_name_2a]));
-    $this->assertTrue($sync->delete($field_config_name_2b), new FormattableMarkup('Deleted field: @field', ['@field' => $field_config_name_2b]));
+    $this->assertTrue($sync->delete($field_storage_config_name), "Deleted field storage: $field_storage_config_name");
+    $this->assertTrue($sync->delete($field_storage_config_name_2), "Deleted field storage: $field_storage_config_name_2");
+    $this->assertTrue($sync->delete($field_config_name), "Deleted field: $field_config_name");
+    $this->assertTrue($sync->delete($field_config_name_2a), "Deleted field: $field_config_name_2a");
+    $this->assertTrue($sync->delete($field_config_name_2b), "Deleted field: $field_config_name_2b");
 
     $deletes = $this->configImporter()->getUnprocessedConfiguration('delete');
     $this->assertCount(5, $deletes, 'Importing configuration will delete 3 fields and 2 field storages.');
@@ -100,22 +99,22 @@ class FieldImportDeleteTest extends FieldKernelTestBase {
 
     // Check that all config files are gone.
     $active = $this->container->get('config.storage');
-    $this->assertIdentical($active->listAll($field_storage_config_name), []);
-    $this->assertIdentical($active->listAll($field_storage_config_name_2), []);
-    $this->assertIdentical($active->listAll($field_config_name), []);
-    $this->assertIdentical($active->listAll($field_config_name_2a), []);
-    $this->assertIdentical($active->listAll($field_config_name_2b), []);
+    $this->assertSame([], $active->listAll($field_storage_config_name));
+    $this->assertSame([], $active->listAll($field_storage_config_name_2));
+    $this->assertSame([], $active->listAll($field_config_name));
+    $this->assertSame([], $active->listAll($field_config_name_2a));
+    $this->assertSame([], $active->listAll($field_config_name_2b));
 
     // Check that only the first storage definition is preserved in state.
-    $deleted_storages = \Drupal::state()->get('field.storage.deleted') ?: [];
+    $deleted_storages = \Drupal::state()->get('field.storage.deleted', []);
     $this->assertTrue(isset($deleted_storages[$field_storage_uuid]));
     $this->assertFalse(isset($deleted_storages[$field_storage_uuid_2]));
 
     // Purge field data, and check that the storage definition has been
     // completely removed once the data is purged.
     field_purge_batch(10);
-    $deleted_storages = \Drupal::state()->get('field.storage.deleted') ?: [];
-    $this->assertTrue(empty($deleted_storages), 'Fields are deleted');
+    $deleted_storages = \Drupal::state()->get('field.storage.deleted', []);
+    $this->assertEmpty($deleted_storages, 'Fields are deleted');
   }
 
 }

@@ -9,13 +9,14 @@ use Drupal\workflows\Entity\Workflow;
  * JSON:API integration test for the "Workflow" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class WorkflowTest extends ResourceTestBase {
+class WorkflowTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['workflows', 'workflow_type_test'];
+  protected static $modules = ['workflows', 'workflow_type_test'];
 
   /**
    * {@inheritdoc}
@@ -126,6 +127,7 @@ class WorkflowTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

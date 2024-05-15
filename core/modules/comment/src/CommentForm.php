@@ -74,6 +74,8 @@ class CommentForm extends ContentEntityForm {
    *   The entity type bundle service.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   The entity field manager service.
    */
   public function __construct(EntityRepositoryInterface $entity_repository, AccountInterface $current_user, RendererInterface $renderer, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL, EntityFieldManagerInterface $entity_field_manager = NULL) {
     parent::__construct($entity_repository, $entity_type_bundle_info, $time);
@@ -240,7 +242,7 @@ class CommentForm extends ContentEntityForm {
       '#access' => $is_admin,
     ];
 
-    return parent::form($form, $form_state, $comment);
+    return parent::form($form, $form_state);
   }
 
   /**
@@ -248,7 +250,7 @@ class CommentForm extends ContentEntityForm {
    */
   protected function actions(array $form, FormStateInterface $form_state) {
     $element = parent::actions($form, $form_state);
-    /* @var \Drupal\comment\CommentInterface $comment */
+    /** @var \Drupal\comment\CommentInterface $comment */
     $comment = $this->entity;
     $entity = $comment->getCommentedEntity();
     $field_definition = $this->entityFieldManager->getFieldDefinitions($entity->getEntityTypeId(), $entity->bundle())[$comment->getFieldName()];
@@ -311,7 +313,7 @@ class CommentForm extends ContentEntityForm {
     // Validate the comment's subject. If not specified, extract from comment
     // body.
     if (trim($comment->getSubject()) == '') {
-      if ($comment->hasField('comment_body')) {
+      if ($comment->hasField('comment_body') && !$comment->comment_body->isEmpty()) {
         // The body may be in any format, so:
         // 1) Filter it into HTML
         // 2) Strip out all HTML tags
@@ -321,7 +323,7 @@ class CommentForm extends ContentEntityForm {
       }
       // Edge cases where the comment body is populated only by HTML tags will
       // require a default subject.
-      if ($comment->getSubject() == '') {
+      if (trim($comment->getSubject()) == '') {
         $comment->setSubject($this->t('(No subject)'));
       }
     }
@@ -379,10 +381,10 @@ class CommentForm extends ContentEntityForm {
       $form_state->setValue('cid', $comment->id());
 
       // Add a log entry.
-      $logger->notice('Comment posted: %subject.', [
-          '%subject' => $comment->getSubject(),
-          'link' => Link::fromTextAndUrl(t('View'), $comment->toUrl()->setOption('fragment', 'comment-' . $comment->id()))->toString(),
-        ]);
+      $logger->info('Comment posted: %subject.', [
+        '%subject' => $comment->getSubject(),
+        'link' => Link::fromTextAndUrl(t('View'), $comment->toUrl()->setOption('fragment', 'comment-' . $comment->id()))->toString(),
+      ]);
 
       // Explain the approval queue if necessary.
       if (!$comment->isPublished()) {

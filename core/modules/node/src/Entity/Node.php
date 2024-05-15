@@ -70,6 +70,7 @@ use Drupal\user\EntityOwnerTrait;
  *   field_ui_base_route = "entity.node_type.edit_form",
  *   common_reference_target = TRUE,
  *   permission_granularity = "bundle",
+ *   collection_permission = "access content overview",
  *   links = {
  *     "canonical" = "/node/{node}",
  *     "delete-form" = "/node/{node}/delete",
@@ -258,22 +259,6 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
   /**
    * {@inheritdoc}
    */
-  public function getRevisionAuthor() {
-    @trigger_error(__NAMESPACE__ . '\Node::getRevisionAuthor is deprecated in drupal:8.2.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Entity\RevisionLogInterface::getRevisionUser() instead. See https://www.drupal.org/node/3069750', E_USER_DEPRECATED);
-    return $this->getRevisionUser();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setRevisionAuthorId($uid) {
-    @trigger_error(__NAMESPACE__ . '\Node::setRevisionAuthorId is deprecated in drupal:8.2.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Entity\RevisionLogInterface::setRevisionUserId() instead. See https://www.drupal.org/node/3069750', E_USER_DEPRECATED);
-    return $this->setRevisionUserId($uid);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
     $fields += static::ownerBaseFieldDefinitions($entity_type);
@@ -327,7 +312,7 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Authored on'))
-      ->setDescription(t('The time that the node was created.'))
+      ->setDescription(t('The date and time that the content was created.'))
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE)
       ->setDisplayOptions('view', [
@@ -376,22 +361,6 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
       ->setDisplayConfigurable('form', TRUE);
 
     return $fields;
-  }
-
-  /**
-   * Default value callback for 'uid' base field definition.
-   *
-   * @see ::baseFieldDefinitions()
-   *
-   * @deprecated The ::getCurrentUserId method is deprecated in 8.6.x and will
-   *   be removed before 9.0.0.
-   *
-   * @return array
-   *   An array of default values.
-   */
-  public static function getCurrentUserId() {
-    @trigger_error('The ::getCurrentUserId method is deprecated in 8.6.x and will be removed before 9.0.0.', E_USER_DEPRECATED);
-    return [\Drupal::currentUser()->id()];
   }
 
 }

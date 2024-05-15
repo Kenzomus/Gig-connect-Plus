@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Component\FileSecurity;
 
 use Drupal\Component\FileSecurity\FileSecurity;
@@ -24,7 +26,7 @@ class FileSecurityTest extends TestCase {
     $this->assertFileExists($htaccess_file);
     $this->assertEquals('0444', substr(sprintf('%o', fileperms($htaccess_file)), -4));
     $htaccess_contents = file_get_contents($htaccess_file);
-    $this->assertContains("Require all denied", $htaccess_contents);
+    $this->assertStringContainsString("Require all denied", $htaccess_contents);
   }
 
   /**
@@ -37,7 +39,7 @@ class FileSecurityTest extends TestCase {
     $this->assertFileExists($htaccess_file);
     $this->assertEquals('0444', substr(sprintf('%o', fileperms($htaccess_file)), -4));
     $htaccess_contents = file_get_contents($htaccess_file);
-    $this->assertNotContains("Require all denied", $htaccess_contents);
+    $this->assertStringNotContainsString("Require all denied", $htaccess_contents);
   }
 
   /**
@@ -49,8 +51,8 @@ class FileSecurityTest extends TestCase {
     file_put_contents($htaccess_file, "foo");
     $this->assertTrue(FileSecurity::writeHtaccess(vfsStream::url('root'), TRUE, TRUE));
     $htaccess_contents = file_get_contents($htaccess_file);
-    $this->assertContains("Require all denied", $htaccess_contents);
-    $this->assertNotContains("foo", $htaccess_contents);
+    $this->assertStringContainsString("Require all denied", $htaccess_contents);
+    $this->assertStringNotContainsString("foo", $htaccess_contents);
   }
 
   /**
@@ -82,7 +84,7 @@ class FileSecurityTest extends TestCase {
     $this->assertTrue(FileSecurity::writeWebConfig(vfsStream::url('root'), TRUE));
     $this->assertFileExists($web_config_file);
     $this->assertEquals('0444', substr(sprintf('%o', fileperms($web_config_file)), -4));
-    $this->assertNotContains("foo", $web_config_file);
+    $this->assertStringNotContainsString("foo", $web_config_file);
   }
 
   /**

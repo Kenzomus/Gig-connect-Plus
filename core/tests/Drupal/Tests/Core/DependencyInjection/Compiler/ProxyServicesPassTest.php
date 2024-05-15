@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\Tests\Core\DependencyInjection\Compiler;
 
 use Drupal\Core\DependencyInjection\Compiler\ProxyServicesPass;
@@ -24,7 +26,7 @@ class ProxyServicesPassTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->proxyServicesPass = new ProxyServicesPass();

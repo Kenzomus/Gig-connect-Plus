@@ -14,6 +14,7 @@ use Drupal\user\Entity\User;
  * JSON:API integration test for the "Media" content entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
 class MediaTest extends ResourceTestBase {
 
@@ -22,7 +23,7 @@ class MediaTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['media'];
+  protected static $modules = ['media'];
 
   /**
    * {@inheritdoc}
@@ -64,7 +65,7 @@ class MediaTest extends ResourceTestBase {
   protected function setUpAuthorization($method) {
     switch ($method) {
       case 'GET':
-        $this->grantPermissionsToTestedRole(['view media']);
+        $this->grantPermissionsToTestedRole(['view media', 'view any camelids media revisions']);
         break;
 
       case 'POST':
@@ -98,7 +99,7 @@ class MediaTest extends ResourceTestBase {
     if (!MediaType::load('camelids')) {
       // Create a "Camelids" media type.
       $media_type = MediaType::create([
-        'name' => 'Camelids',
+        'label' => 'Camelids',
         'id' => 'camelids',
         'description' => 'Camelids are large, strictly herbivorous animals with slender necks and long legs.',
         'source' => 'file',
@@ -183,7 +184,7 @@ class MediaTest extends ResourceTestBase {
           'status' => TRUE,
           'created' => '1973-11-29T21:33:09+00:00',
           'changed' => (new \DateTime())->setTimestamp($this->entity->getChangedTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
-          'revision_created' => (new \DateTime())->setTimestamp($this->entity->getRevisionCreationTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'revision_created' => (new \DateTime())->setTimestamp((int) $this->entity->getRevisionCreationTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'default_langcode' => TRUE,
           'revision_log_message' => NULL,
           // @todo Attempt to remove this in https://www.drupal.org/project/drupal/issues/2933518.
@@ -198,6 +199,7 @@ class MediaTest extends ResourceTestBase {
               'meta' => [
                 'description' => NULL,
                 'display' => NULL,
+                'drupal_internal__target_id' => (int) $file->id(),
               ],
               'type' => 'file--file',
             ],
@@ -215,6 +217,7 @@ class MediaTest extends ResourceTestBase {
               'id' => $thumbnail->uuid(),
               'meta' => [
                 'alt' => '',
+                'drupal_internal__target_id' => (int) $thumbnail->id(),
                 'width' => 180,
                 'height' => 180,
                 'title' => NULL,
@@ -233,6 +236,9 @@ class MediaTest extends ResourceTestBase {
           'bundle' => [
             'data' => [
               'id' => MediaType::load('camelids')->uuid(),
+              'meta' => [
+                'drupal_internal__target_id' => 'camelids',
+              ],
               'type' => 'media_type--media_type',
             ],
             'links' => [
@@ -248,6 +254,9 @@ class MediaTest extends ResourceTestBase {
             'data' => [
               'id' => $author->uuid(),
               'type' => 'user--user',
+              'meta' => [
+                'drupal_internal__target_id' => (int) $author->id(),
+              ],
             ],
             'links' => [
               'related' => [
@@ -261,6 +270,9 @@ class MediaTest extends ResourceTestBase {
           'revision_user' => [
             'data' => [
               'id' => $author->uuid(),
+              'meta' => [
+                'drupal_internal__target_id' => (int) $author->id(),
+              ],
               'type' => 'user--user',
             ],
             'links' => [
@@ -286,7 +298,7 @@ class MediaTest extends ResourceTestBase {
       'data' => [
         'type' => 'media--camelids',
         'attributes' => [
-          'name' => 'Dramallama',
+          'name' => 'Drama llama',
         ],
         'relationships' => [
           'field_media_file' => [
@@ -295,6 +307,7 @@ class MediaTest extends ResourceTestBase {
               'meta' => [
                 'description' => 'This file is better!',
                 'display' => NULL,
+                'drupal_internal__target_id' => (int) $file->id(),
               ],
               'type' => 'file--file',
             ],
@@ -342,7 +355,6 @@ class MediaTest extends ResourceTestBase {
       ->addCacheTags(['media:1']);
   }
 
-  // @codingStandardsIgnoreStart
   /**
    * {@inheritdoc}
    */
@@ -351,7 +363,6 @@ class MediaTest extends ResourceTestBase {
     // @todo Later, use https://www.drupal.org/project/drupal/issues/2958554 to upload files rather than the REST module.
     parent::testPostIndividual();
   }
-  // @codingStandardsIgnoreEnd
 
   /**
    * {@inheritdoc}
@@ -365,14 +376,14 @@ class MediaTest extends ResourceTestBase {
           'width' => 180,
           'height' => 180,
           'title' => NULL,
-        ];
+        ] + $data['meta'];
         return $data;
 
       case 'field_media_file':
         $data['meta'] = [
           'description' => NULL,
           'display' => NULL,
-        ];
+        ] + $data['meta'];
         return $data;
 
       default:

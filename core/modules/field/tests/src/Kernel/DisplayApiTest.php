@@ -60,9 +60,12 @@ class DisplayApiTest extends FieldKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system'];
+  protected static $modules = ['system'];
 
-  protected function setUp() {
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a field and its storage.
@@ -108,7 +111,11 @@ class DisplayApiTest extends FieldKernelTestBase {
       ->setComponent($this->fieldName, $this->displayOptions['default'])
       ->save();
     // Create a display for the teaser view mode.
-    EntityViewMode::create(['id' => 'entity_test.teaser', 'targetEntityType' => 'entity_test'])->save();
+    EntityViewMode::create([
+      'id' => 'entity_test.teaser',
+      'label' => 'Teaser',
+      'targetEntityType' => 'entity_test',
+    ])->save();
     $display_repository->getViewDisplay($field['entity_type'], $field['bundle'], 'teaser')
       ->setComponent($this->fieldName, $this->displayOptions['teaser'])
       ->save();
@@ -126,8 +133,8 @@ class DisplayApiTest extends FieldKernelTestBase {
   public function testFieldItemListView() {
     $items = $this->entity->get($this->fieldName);
 
-    \Drupal::service('theme_installer')->install(['classy']);
-    $this->config('system.theme')->set('default', 'classy')->save();
+    \Drupal::service('theme_installer')->install(['stark']);
+    $this->config('system.theme')->set('default', 'stark')->save();
 
     // No display settings: check that default display settings are used.
     $build = $items->view();

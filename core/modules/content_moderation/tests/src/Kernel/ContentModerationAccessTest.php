@@ -25,7 +25,7 @@ class ContentModerationAccessTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'content_moderation',
     'filter',
     'node',
@@ -37,20 +37,19 @@ class ContentModerationAccessTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('content_moderation_state');
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installConfig(['content_moderation', 'filter']);
-    $this->installSchema('system', ['sequences']);
     $this->installSchema('node', ['node_access']);
 
     // Add a moderated node type.
     $node_type = NodeType::create([
       'type' => 'page',
-      'label' => 'Page',
+      'name' => 'Page',
     ]);
     $node_type->save();
     $workflow = $this->createEditorialWorkflow();
@@ -67,6 +66,7 @@ class ContentModerationAccessTest extends KernelTestBase {
     /** @var \Drupal\user\RoleInterface $authenticated */
     $authenticated = Role::create([
       'id' => 'authenticated',
+      'label' => 'Authenticated',
     ]);
     $authenticated->grantPermission('access content');
     $authenticated->grantPermission('edit any page content');
@@ -79,8 +79,8 @@ class ContentModerationAccessTest extends KernelTestBase {
 
     $result = $node->access('update', $account, TRUE);
     $this->assertFalse($result->isAllowed());
-    $this->assertEquals(['user.permissions'], $result->getCacheContexts());
-    $this->assertEquals(['config:workflows.workflow.editorial', 'node:' . $node->id()], $result->getCacheTags());
+    $this->assertEqualsCanonicalizing(['user.permissions'], $result->getCacheContexts());
+    $this->assertEqualsCanonicalizing(['config:workflows.workflow.editorial', 'node:' . $node->id()], $result->getCacheTags());
     $this->assertEquals(CacheBackendInterface::CACHE_PERMANENT, $result->getCacheMaxAge());
 
     $authenticated->grantPermission('use editorial transition create_new_draft');
@@ -89,8 +89,8 @@ class ContentModerationAccessTest extends KernelTestBase {
     \Drupal::entityTypeManager()->getAccessControlHandler('node')->resetCache();
     $result = $node->access('update', $account, TRUE);
     $this->assertTrue($result->isAllowed());
-    $this->assertEquals(['user.permissions'], $result->getCacheContexts());
-    $this->assertEquals(['config:workflows.workflow.editorial', 'node:' . $node->id()], $result->getCacheTags());
+    $this->assertEqualsCanonicalizing(['user.permissions'], $result->getCacheContexts());
+    $this->assertEqualsCanonicalizing(['config:workflows.workflow.editorial', 'node:' . $node->id()], $result->getCacheTags());
     $this->assertEquals(CacheBackendInterface::CACHE_PERMANENT, $result->getCacheMaxAge());
   }
 

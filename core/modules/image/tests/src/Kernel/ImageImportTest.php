@@ -15,7 +15,7 @@ class ImageImportTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'image', 'image_module_test'];
+  protected static $modules = ['system', 'image', 'image_module_test'];
 
   /**
    * Tests importing image styles.
@@ -23,6 +23,7 @@ class ImageImportTest extends KernelTestBase {
   public function testImport() {
     $style = ImageStyle::create([
       'name' => 'test',
+      'label' => 'Test',
     ]);
 
     $style->addImageEffect(['id' => 'image_module_test_null']);

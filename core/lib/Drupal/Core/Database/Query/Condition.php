@@ -90,6 +90,7 @@ class Condition implements ConditionInterface, \Countable {
    * size of its conditional array minus one, because one element is the
    * conjunction.
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return count($this->conditions) - 1;
   }
@@ -103,6 +104,16 @@ class Condition implements ConditionInterface, \Countable {
     }
     if (empty($value) && is_array($value)) {
       throw new InvalidQueryException(sprintf("Query condition '%s %s ()' cannot be empty.", $field, $operator));
+    }
+    if (is_array($value) && in_array($operator, ['=', '<', '>', '<=', '>=', 'IS NULL', 'IS NOT NULL'], TRUE)) {
+      if (count($value) > 1) {
+        $value = implode(', ', $value);
+        throw new InvalidQueryException(sprintf("Query condition '%s %s %s' must have an array compatible operator.", $field, $operator, $value));
+      }
+      else {
+        $value = $value[0];
+        @trigger_error('Calling ' . __METHOD__ . '() without an array compatible operator is deprecated in drupal:10.1.0 and will be required in drupal:11.0.0. See https://www.drupal.org/node/3350985', E_USER_DEPRECATED);
+      }
     }
 
     $this->conditions[] = [
@@ -247,9 +258,9 @@ class Condition implements ConditionInterface, \Countable {
             $this->stringVersion = '( AND 1 = 0 )';
 
             // Conceptually throwing an exception caused by user input is bad
-            // as you result into a WSOD, which depending on your webserver
-            // configuration can result into the assumption that your site is
-            // broken.
+            // as you result into a 'white screen of death', which depending on
+            // your webserver configuration can result into the assumption that
+            // your site is broken.
             // On top of that the database API relies on __toString() which
             // does not allow to throw exceptions.
             trigger_error('Invalid characters in query operator: ' . $condition['operator'], E_USER_ERROR);
@@ -387,7 +398,7 @@ class Condition implements ConditionInterface, \Countable {
       // do not need the more expensive mb_strtoupper() because SQL statements
       // are ASCII.
       $operator = strtoupper($operator);
-      $return = isset(static::$conditionOperatorMap[$operator]) ? static::$conditionOperatorMap[$operator] : [];
+      $return = static::$conditionOperatorMap[$operator] ?? [];
     }
 
     $return += ['operator' => $operator];

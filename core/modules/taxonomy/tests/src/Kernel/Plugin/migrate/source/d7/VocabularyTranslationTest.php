@@ -4,6 +4,8 @@ namespace Drupal\Tests\taxonomy\Kernel\Plugin\migrate\source\d7;
 
 use Drupal\Tests\migrate\Kernel\MigrateSqlSourceTestBase;
 
+// cspell:ignore objectid objectindex
+
 /**
  * Tests D7 i18n vocabulary source plugin.
  *
@@ -15,7 +17,7 @@ class VocabularyTranslationTest extends MigrateSqlSourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'migrate_drupal'];
+  protected static $modules = ['taxonomy', 'migrate_drupal'];
 
   /**
    * {@inheritdoc}

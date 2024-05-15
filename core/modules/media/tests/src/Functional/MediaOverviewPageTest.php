@@ -16,18 +16,18 @@ class MediaOverviewPageTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->nonAdminUser);
   }
 
   /**
-   * Test that the Media overview page (/admin/content/media).
+   * Tests that the Media overview page (/admin/content/media).
    */
   public function testMediaOverviewPage() {
     $assert_session = $this->assertSession();
@@ -86,6 +86,9 @@ class MediaOverviewPageTest extends MediaFunctionalTestBase {
     ]);
     $media3->save();
 
+    // Make sure the role save below properly invalidates cache tags.
+    $this->refreshVariables();
+
     // Verify the view is now correctly populated. The non-admin user can only
     // view published media.
     $this->grantPermissions($role, [
@@ -133,12 +136,13 @@ class MediaOverviewPageTest extends MediaFunctionalTestBase {
     $this->assertSame($expected, $changed_element1->getText());
 
     // Operations.
-    $edit_link1 = $assert_session->elementExists('css', 'td.views-field-operations li.edit a', $row1);
-    $this->assertSame('Edit', $edit_link1->getText());
+    $assert_session->elementExists('css', 'td.views-field-operations li a:contains("Edit")', $row1);
     $assert_session->linkByHrefExists('/media/' . $media1->id() . '/edit');
-    $delete_link1 = $assert_session->elementExists('css', 'td.views-field-operations li.delete a', $row1);
-    $this->assertSame('Delete', $delete_link1->getText());
+    $assert_session->elementExists('css', 'td.views-field-operations li a:contains("Delete")', $row1);
     $assert_session->linkByHrefExists('/media/' . $media1->id() . '/delete');
+
+    // Make sure the role save below properly invalidates cache tags.
+    $this->refreshVariables();
 
     // Make the user the owner of the unpublished media item and assert the
     // media item is only visible with the 'view own unpublished media'

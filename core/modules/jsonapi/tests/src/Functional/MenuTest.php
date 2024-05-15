@@ -9,13 +9,14 @@ use Drupal\system\Entity\Menu;
  * JSON:API integration test for the "Menu" config entity type.
  *
  * @group jsonapi
+ * @group #slow
  */
-class MenuTest extends ResourceTestBase {
+class MenuTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = [];
+  protected static $modules = [];
 
   /**
    * {@inheritdoc}
@@ -106,6 +107,7 @@ class MenuTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

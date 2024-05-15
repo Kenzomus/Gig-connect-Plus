@@ -18,8 +18,10 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RedirectDestinationInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Url;
 use Drupal\user\Entity\User;
 use Drupal\user\EntityOwnerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -78,8 +80,9 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
   protected $currentUser;
 
   /**
-   * The array of installed field storage definitions for the entity type, keyed
-   * by field name.
+   * Installed field storage definitions for the entity type.
+   *
+   * Keyed by field name.
    *
    * @var \Drupal\Core\Field\FieldStorageDefinitionInterface[]
    */
@@ -116,21 +119,25 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
    *   The messenger service.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
+   * @param \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $entity_last_installed_schema_repository
+   *   The installed entity definition repository service.
+   * @param \Drupal\Core\Routing\RedirectDestinationInterface|null $redirectDestination
+   *   The request stack.
    */
-  public function __construct(EntityTypeInterface $entity_type, LanguageManagerInterface $language_manager, ContentTranslationManagerInterface $manager, EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user, MessengerInterface $messenger, DateFormatterInterface $date_formatter, EntityLastInstalledSchemaRepositoryInterface $entity_last_installed_schema_repository = NULL) {
+  public function __construct(EntityTypeInterface $entity_type, LanguageManagerInterface $language_manager, ContentTranslationManagerInterface $manager, EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user, MessengerInterface $messenger, DateFormatterInterface $date_formatter, EntityLastInstalledSchemaRepositoryInterface $entity_last_installed_schema_repository, protected ?RedirectDestinationInterface $redirectDestination = NULL) {
     $this->entityTypeId = $entity_type->id();
     $this->entityType = $entity_type;
     $this->languageManager = $language_manager;
     $this->manager = $manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
-    if (!$entity_last_installed_schema_repository) {
-      @trigger_error('Calling ContentTranslationHandler::__construct() with the $entity_last_installed_schema_repository argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-      $entity_last_installed_schema_repository = \Drupal::service('entity.last_installed_schema.repository');
-    }
     $this->fieldStorageDefinitions = $entity_last_installed_schema_repository->getLastInstalledFieldStorageDefinitions($this->entityTypeId);
     $this->messenger = $messenger;
     $this->dateFormatter = $date_formatter;
+    if ($this->redirectDestination === NULL) {
+      @trigger_error('Calling ContentTranslationHandler::__construct() without the $redirectDestination argument is deprecated in drupal:10.2.0 and will be required in drupal:11.0.0. See https://www.drupal.org/node/3375487', E_USER_DEPRECATED);
+      $this->redirectDestination = \Drupal::service('redirect.destination');
+    }
   }
 
   /**
@@ -145,7 +152,8 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
       $container->get('current_user'),
       $container->get('messenger'),
       $container->get('date.formatter'),
-      $container->get('entity.last_installed_schema.repository')
+      $container->get('entity.last_installed_schema.repository'),
+      $container->get('redirect.destination')
     );
   }
 
@@ -178,7 +186,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
         ->setSetting('target_type', 'user')
         ->setSetting('handler', 'default')
         ->setRevisionable(TRUE)
-        ->setDefaultValueCallback(get_class($this) . '::getDefaultOwnerId')
+        ->setDefaultValueCallback(static::class . '::getDefaultOwnerId')
         ->setTranslatable(TRUE);
     }
 
@@ -295,7 +303,11 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
     if (!$this->currentUser->hasPermission('translate any entity') && $permission_granularity = $entity_type->getPermissionGranularity()) {
       $translate_permission = $this->currentUser->hasPermission($permission_granularity == 'bundle' ? "translate {$entity->bundle()} {$entity->getEntityTypeId()}" : "translate {$entity->getEntityTypeId()}");
     }
-    return AccessResult::allowedIf($translate_permission && $this->currentUser->hasPermission("$op content translations"))->cachePerPermissions();
+    $access = AccessResult::allowedIf(($translate_permission && $this->currentUser->hasPermission("$op content translations")))->cachePerPermissions();
+    if (!$access->isAllowed()) {
+      return AccessResult::allowedIfHasPermission($this->currentUser, 'translate editable entities')->andIf($entity->access('update', $this->currentUser, TRUE));
+    }
+    return $access;
   }
 
   /**
@@ -416,11 +428,14 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
           ($entity->access('delete') && $this->entityType->hasLinkTemplate('delete-form'))
         );
         $form['actions']['delete_translation'] = [
-          '#type' => 'submit',
-          '#value' => t('Delete translation'),
-          '#weight' => $weight,
-          '#submit' => [[$this, 'entityFormDeleteTranslation']],
+          '#type' => 'link',
+          '#title' => $this->t('Delete translation'),
           '#access' => $access,
+          '#weight' => $weight,
+          '#url' => $this->entityFormDeleteTranslationUrl($entity, $form_langcode),
+          '#attributes' => [
+            'class' => ['button', 'button--danger'],
+          ],
         ];
       }
 
@@ -526,10 +541,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
         '#type' => 'textfield',
         '#title' => t('Authored on'),
         '#maxlength' => 25,
-        '#description' => t('Format: %time. The date format is YYYY-MM-DD and %timezone is the time zone offset from UTC. Leave blank to use the time of form submission.', [
-          '%time' => $this->dateFormatter->format(REQUEST_TIME, 'custom', 'Y-m-d H:i:s O'),
-          '%timezone' => $this->dateFormatter->format(REQUEST_TIME, 'custom', 'O'),
-        ]),
+        '#description' => t('Leave blank to use the time of form submission.'),
         '#default_value' => $new_translation || !$date ? '' : $this->dateFormatter->format($date, 'custom', 'Y-m-d H:i:s O'),
       ];
 
@@ -614,9 +626,21 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
       }
     }
 
-    if ($display_warning && !$form_state->isSubmitted() && !$form_state->isRebuilding()) {
+    if ($display_warning) {
       $url = $entity->getUntranslated()->toUrl('edit-form')->toString();
-      $this->messenger->addWarning($this->t('Fields that apply to all languages are hidden to avoid conflicting changes. <a href=":url">Edit them on the original language form</a>.', [':url' => $url]));
+      $message['warning'][] = $this->t('Fields that apply to all languages are hidden to avoid conflicting changes. <a href=":url">Edit them on the original language form</a>.', [':url' => $url]);
+      // Explicitly renders this warning message. This prevents repetition on
+      // AJAX operations or form submission. Other messages will be rendered in
+      // the default location.
+      // @see \Drupal\Core\Render\Element\StatusMessages.
+      $element['hidden_fields_warning_message'] = [
+        '#theme' => 'status_messages',
+        '#message_list' => $message,
+        '#weight' => -100,
+        '#status_headings' => [
+          'warning' => $this->t('Warning message'),
+        ],
+      ];
     }
 
     return $element;
@@ -650,7 +674,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
     // If the current element does not have a (valid) title, try child elements.
     elseif ($children = Element::children($element)) {
       foreach ($children as $delta) {
-        $this->addTranslatabilityClue($element[$delta], $suffix);
+        $this->addTranslatabilityClue($element[$delta]);
       }
     }
     // If there are no children, fall back to the current #title attribute if it
@@ -667,6 +691,10 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
    *   The type of the entity.
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity whose form is being built.
+   * @param array $form
+   *   A nested array form elements comprising the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    *
    * @see \Drupal\content_translation\ContentTranslationHandler::entityFormAlter()
    */
@@ -758,8 +786,28 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
     $form_object = $form_state->getFormObject();
     $entity = $form_object->getEntity();
     if (count($entity->getTranslationLanguages()) > 1) {
-      $this->messenger->addWarning(t('This will delete all the translations of %label.', ['%label' => $entity->label()]));
+      $this->messenger->addWarning(t('This will delete all the translations of %label.', ['%label' => $entity->label() ?? $entity->id()]));
     }
+  }
+
+  /**
+   * Form submission handler for ContentTranslationHandler::entityFormAlter().
+   *
+   * Get the entity delete form route url.
+   */
+  protected function entityFormDeleteTranslationUrl(EntityInterface $entity, $form_langcode) {
+    $entity_type_id = $entity->getEntityTypeId();
+    $options = [];
+    $options['query']['destination'] = $this->redirectDestination->get();
+
+    if ($entity->access('delete') && $this->entityType->hasLinkTemplate('delete-form')) {
+      return $entity->toUrl('delete-form', $options);
+    }
+
+    return Url::fromRoute("entity.$entity_type_id.content_translation_delete", [
+      $entity_type_id => $entity->id(),
+      'language' => $form_langcode,
+    ], $options);
   }
 
   /**
@@ -768,6 +816,8 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
    * Takes care of content translation deletion.
    */
   public function entityFormDeleteTranslation($form, FormStateInterface $form_state) {
+    @trigger_error('Calling ContentTranslationHandler::entityFormDeleteTranslation() is deprecated in drupal:10.2.0 and will be removed in drupal:11.0.0. See https://www.drupal.org/node/3375492', E_USER_DEPRECATED);
+
     /** @var \Drupal\Core\Entity\ContentEntityFormInterface $form_object */
     $form_object = $form_state->getFormObject();
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */

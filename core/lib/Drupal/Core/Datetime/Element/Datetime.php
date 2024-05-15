@@ -3,9 +3,12 @@
 namespace Drupal\Core\Datetime\Element;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Variable;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Datetime\Entity\DateFormat;
+use Drupal\Core\Security\DoTrustedCallbackTrait;
+use Drupal\Core\Security\StaticTrustedCallbackHelper;
 
 /**
  * Provides a datetime element.
@@ -13,6 +16,8 @@ use Drupal\Core\Datetime\Entity\DateFormat;
  * @FormElement("datetime")
  */
 class Datetime extends DateElementBase {
+
+  use DoTrustedCallbackTrait;
 
   /**
    * @var \DateTimeInterface
@@ -28,16 +33,16 @@ class Datetime extends DateElementBase {
     // Date formats cannot be loaded during install or update.
     if (!defined('MAINTENANCE_MODE')) {
       if ($date_format_entity = DateFormat::load('html_date')) {
-        /** @var $date_format_entity \Drupal\Core\Datetime\DateFormatInterface */
+        /** @var \Drupal\Core\Datetime\DateFormatInterface $date_format_entity */
         $date_format = $date_format_entity->getPattern();
       }
       if ($time_format_entity = DateFormat::load('html_time')) {
-        /** @var $time_format_entity \Drupal\Core\Datetime\DateFormatInterface */
+        /** @var \Drupal\Core\Datetime\DateFormatInterface $time_format_entity */
         $time_format = $time_format_entity->getPattern();
       }
     }
 
-    $class = get_class($this);
+    $class = static::class;
 
     // Note that since this information is cached, the #date_timezone property
     // is not set here, as this needs to vary potentially by-user.
@@ -99,7 +104,7 @@ class Datetime extends DateElementBase {
       ];
     }
     else {
-      $date = isset($element['#default_value']) ? $element['#default_value'] : NULL;
+      $date = $element['#default_value'] ?? NULL;
       if ($date instanceof DrupalDateTime && !$date->hasErrors()) {
         $date->setTimezone(new \DateTimeZone($element['#date_timezone']));
         $input = [
@@ -154,7 +159,7 @@ class Datetime extends DateElementBase {
    *     element, no other format will work. See the
    *     DateFormatterInterface::format() function for a list of the possible
    *     formats and HTML5 standards for the HTML5 requirements. Defaults to the
-   *     right HTML5 format for the chosen element if a HTML5 element is used,
+   *     right HTML5 format for the chosen element if an HTML5 element is used,
    *     otherwise defaults to DateFormat::load('html_date')->getPattern().
    *   - #date_date_element: The date element. Options are:
    *     - datetime: Use the HTML5 datetime element type.
@@ -163,9 +168,8 @@ class Datetime extends DateElementBase {
    *     - text: No HTML5 element, use a normal text field.
    *     - none: Do not display a date element.
    *   - #date_date_callbacks: Array of optional callbacks for the date element.
-   *     Can be used to add a jQuery datepicker.
    *   - #date_time_element: The time element. Options are:
-   *     - time: Use a HTML5 time element type.
+   *     - time: Use an HTML5 time element type.
    *     - text: No HTML5 element, use a normal text field.
    *     - none: Do not display a time element.
    *   - #date_time_format: A date format string that describes the format that
@@ -174,7 +178,7 @@ class Datetime extends DateElementBase {
    *     element, no other format will work. See the
    *     DateFormatterInterface::format() function for a list of the possible
    *     formats and HTML5 standards for the HTML5 requirements. Defaults to the
-   *     right HTML5 format for the chosen element if a HTML5 element is used,
+   *     right HTML5 format for the chosen element if an HTML5 element is used,
    *     otherwise defaults to DateFormat::load('html_time')->getPattern().
    *   - #date_time_callbacks: An array of optional callbacks for the time
    *     element. Can be used to add a jQuery timepicker or an 'All day' checkbox.
@@ -183,15 +187,14 @@ class Datetime extends DateElementBase {
    *     earliest year and the second the latest year in the range. A year
    *     in either position means that specific year. A +/- value describes a
    *     dynamic value that is that many years earlier or later than the current
-   *     year at the time the form is displayed. Used in jQueryUI datepicker year
-   *     range and HTML5 min/max date settings. Defaults to '1900:2050'.
+   *     year at the time the form is displayed. Used in HTML5 min/max date
+   *     settings. Defaults to '1900:2050'.
    *   - #date_increment: The interval (step) to use when incrementing or
    *     decrementing time, in seconds. For example, if this value is set to 30,
    *     time increases (or decreases) in steps of 30 seconds (00:00:00,
    *     00:00:30, 00:01:00, and so on.) If this value is a multiple of 60, the
    *     "seconds"-component will not be shown in the input. Used for HTML5 step
-   *     values and jQueryUI datepicker settings. Defaults to 1 to show every
-   *     second.
+   *     values. Defaults to 1 to show every second.
    *   - #date_timezone: The Time Zone Identifier (TZID) to use when displaying
    *     or interpreting dates, i.e: 'Asia/Kolkata'. Defaults to the value
    *     returned by date_default_timezone_get().
@@ -236,7 +239,6 @@ class Datetime extends DateElementBase {
       // placeholders are invalid for HTML5 date and datetime, so an example
       // format is appended to the title to appear in tooltips.
       $extra_attributes = [
-        'title' => t('Date (e.g. @format)', ['@format' => static::formatExample($date_format)]),
         'type' => $element['#date_date_element'],
       ];
 
@@ -269,9 +271,8 @@ class Datetime extends DateElementBase {
       // Allows custom callbacks to alter the element.
       if (!empty($element['#date_date_callbacks'])) {
         foreach ($element['#date_date_callbacks'] as $callback) {
-          if (is_callable($callback)) {
-            $callback($element, $form_state, $date);
-          }
+          $message = sprintf('DateTime element #date_date_callbacks callbacks must be methods of a class that implements \Drupal\Core\Security\TrustedCallbackInterface or be an anonymous function. The callback was %s. See https://www.drupal.org/node/3217966', Variable::callableToString($callback));
+          StaticTrustedCallbackHelper::callback($callback, [&$element, $form_state, $date], $message);
         }
       }
     }
@@ -283,7 +284,6 @@ class Datetime extends DateElementBase {
 
       // Adds the HTML5 attributes.
       $extra_attributes = [
-        'title' => t('Time (e.g. @format)', ['@format' => static::formatExample($time_format)]),
         'type' => $element['#date_time_element'],
         'step' => $element['#date_increment'],
       ];
@@ -301,9 +301,8 @@ class Datetime extends DateElementBase {
       // Allows custom callbacks to alter the element.
       if (!empty($element['#date_time_callbacks'])) {
         foreach ($element['#date_time_callbacks'] as $callback) {
-          if (function_exists($callback)) {
-            $callback($element, $form_state, $date);
-          }
+          $message = sprintf('DateTime element #date_time_callbacks callbacks must be methods of a class that implements \Drupal\Core\Security\TrustedCallbackInterface or be an anonymous function. The callback was %s. See https://www.drupal.org/node/3217966', Variable::callableToString($callback));
+          StaticTrustedCallbackHelper::callback($callback, [&$element, $form_state, $date], $message);
         }
       }
     }
@@ -350,10 +349,7 @@ class Datetime extends DateElementBase {
     $input = NestedArray::getValue($form_state->getValues(), $element['#parents'], $input_exists);
     if ($input_exists) {
 
-      $title = !empty($element['#title']) ? $element['#title'] : '';
-      $date_format = $element['#date_date_element'] != 'none' ? static::getHtml5DateFormat($element) : '';
-      $time_format = $element['#date_time_element'] != 'none' ? static::getHtml5TimeFormat($element) : '';
-      $format = trim($date_format . ' ' . $time_format);
+      $title = static::getElementTitle($element, $complete_form);
 
       // If there's empty input and the field is not required, set it to empty.
       if (empty($input['date']) && empty($input['time']) && !$element['#required']) {
@@ -362,7 +358,7 @@ class Datetime extends DateElementBase {
       // If there's empty input and the field is required, set an error. A
       // reminder of the required format in the message provides a good UX.
       elseif (empty($input['date']) && empty($input['time']) && $element['#required']) {
-        $form_state->setError($element, t('The %field date is required. Please enter a date in the format %format.', ['%field' => $title, '%format' => static::formatExample($format)]));
+        $form_state->setError($element, t('The %field date is required.', ['%field' => $title]));
       }
       else {
         // If the date is valid, set it.
@@ -373,7 +369,7 @@ class Datetime extends DateElementBase {
         // If the date is invalid, set an error. A reminder of the required
         // format in the message provides a good UX.
         else {
-          $form_state->setError($element, t('The %field date is invalid. Please enter a date in the format %format.', ['%field' => $title, '%format' => static::formatExample($format)]));
+          $form_state->setError($element, t('The %field date is invalid. Enter a date in the correct format.', ['%field' => $title]));
         }
       }
     }
@@ -385,10 +381,17 @@ class Datetime extends DateElementBase {
    * This is centralized for a consistent method of creating these examples.
    *
    * @param string $format
+   *   The date format.
    *
    * @return string
+   *
+   * @deprecated in drupal:10.2.0 and is removed from drupal:11.0.0.
+   *   There is no replacement.
+   *
+   * @see https://www.drupal.org/node/3385058
    */
   public static function formatExample($format) {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:10.2.0 and is removed from drupal:11.0.0. There is no replacement. See https://www.drupal.org/node/3385058', E_USER_DEPRECATED);
     if (!static::$dateExample) {
       static::$dateExample = new DrupalDateTime();
     }
@@ -396,7 +399,7 @@ class Datetime extends DateElementBase {
   }
 
   /**
-   * Retrieves the right format for a HTML5 date element.
+   * Retrieves the right format for an HTML5 date element.
    *
    * The format is important because these elements will not work with any other
    * format.
@@ -406,7 +409,7 @@ class Datetime extends DateElementBase {
    *
    * @return string
    *   Returns the right format for the date element, or the original format
-   *   if this is not a HTML5 element.
+   *   if this is not an HTML5 element.
    */
   protected static function getHtml5DateFormat($element) {
     switch ($element['#date_date_element']) {
@@ -423,7 +426,7 @@ class Datetime extends DateElementBase {
   }
 
   /**
-   * Retrieves the right format for a HTML5 time element.
+   * Retrieves the right format for an HTML5 time element.
    *
    * The format is important because these elements will not work with any other
    * format.
@@ -433,7 +436,7 @@ class Datetime extends DateElementBase {
    *
    * @return string
    *   Returns the right format for the time element, or the original format
-   *   if this is not a HTML5 element.
+   *   if this is not an HTML5 element.
    */
   protected static function getHtml5TimeFormat($element) {
     switch ($element['#date_time_element']) {
