@@ -1,3 +1,8 @@
 api_version: 1
+protected_web_paths:
+  - /example.txt
+  - /example_directory
+protected_web_paths_override: true
+web_docroot: true
 
 php_version: 8.1
